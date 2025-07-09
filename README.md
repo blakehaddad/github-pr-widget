@@ -2,6 +2,8 @@
 
 A sleek, floating Electron app that displays your GitHub pull requests with real-time status indicators in a beautiful, always-on-top window.
 
+![GitHub PR Widget Screenshot](assets/images/widget-screenshot.png)
+
 ## ✨ Features
 
 ### 🪟 **Beautiful UI**
