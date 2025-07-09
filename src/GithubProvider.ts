@@ -14,6 +14,7 @@ interface PullRequest {
   };
   ci_status?: 'success' | 'failure' | 'pending' | 'unknown';
   review_status?: 'approved' | 'changes_requested' | 'pending' | 'unknown';
+  graphite_url?: string;
 }
 
 interface GitHubResponse {
@@ -52,11 +53,12 @@ class GithubProvider {
     
     const pullRequestsWithStatus = await Promise.all(
       data.items.map(async (pr) => {
-        const [ci_status, review_status] = await Promise.all([
+        const [ci_status, review_status, graphite_url] = await Promise.all([
           this.fetchCIStatus(pr),
-          this.fetchReviewStatus(pr)
+          this.fetchReviewStatus(pr),
+          this.fetchGraphiteUrl(pr)
         ]);
-        return { ...pr, ci_status, review_status };
+        return { ...pr, ci_status, review_status, graphite_url };
       })
     );
 
@@ -165,6 +167,47 @@ class GithubProvider {
     } catch (error) {
       console.error('Error fetching review status:', error);
       return 'unknown';
+    }
+  }
+
+  private async fetchGraphiteUrl(pr: PullRequest): Promise<string | undefined> {
+    try {
+      const urlParts = pr.repository_url.split('/');
+      const owner = urlParts[urlParts.length - 2];
+      const repo = urlParts[urlParts.length - 1];
+      
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${pr.number}/comments`, {
+        headers: {
+          'Authorization': `token ${this.githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'GitHub-PR-Widget'
+        }
+      });
+
+      if (!response.ok) {
+        return undefined;
+      }
+
+      const comments = await response.json();
+      
+      // Look for Graphite bot comments
+      for (const comment of comments) {
+        const body = comment.body || '';
+        
+        // Check if it's a Graphite-managed PR comment
+        if (body.includes('managed by Graphite') || body.includes('View in Graphite')) {
+          // Extract Graphite URL from the comment
+          const graphiteUrlMatch = body.match(/https:\/\/app\.graphite\.dev\/[^\s)]+/);
+          if (graphiteUrlMatch) {
+            return graphiteUrlMatch[0];
+          }
+        }
+      }
+      
+      return undefined;
+    } catch (error) {
+      console.error('Error fetching Graphite URL:', error);
+      return undefined;
     }
   }
 }

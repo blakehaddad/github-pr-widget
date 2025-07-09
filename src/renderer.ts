@@ -22,6 +22,7 @@ interface PullRequest {
   // Status indicators (will be populated separately)
   ci_status?: 'success' | 'failure' | 'pending' | 'unknown';
   review_status?: 'approved' | 'changes_requested' | 'pending' | 'unknown';
+  graphite_url?: string;
 }
 
 class GitHubPRWidget {
@@ -96,6 +97,7 @@ class GitHubPRWidget {
     }
   }
 
+
   private async fetchPullRequests(): Promise<void> {
     try {
       this.setLoading(true);
@@ -115,7 +117,6 @@ class GitHubPRWidget {
       this.setLoading(false);
     }
   }
-
 
   private renderPullRequests(pullRequests: PullRequest[]): void {
     if (pullRequests.length === 0) {
@@ -153,6 +154,7 @@ class GitHubPRWidget {
           <div class="pr-status-indicators">
             ${this.renderStatusIndicator('ci', pr.ci_status)}
             ${this.renderStatusIndicator('review', pr.review_status)}
+            ${pr.graphite_url ? this.renderGraphiteButton(pr.graphite_url) : ''}
           </div>
         </div>
         <div class="pr-meta">
@@ -161,9 +163,21 @@ class GitHubPRWidget {
         </div>
       `;
       
-      // Add click handler to open PR
-      prItem.addEventListener('click', () => {
-        rendererIpc.invoke('open-external', pr.html_url);
+      // Add click handler to open PR (but not when clicking on buttons)
+      prItem.addEventListener('click', (event) => {
+        const target = event.target as HTMLElement;
+        const graphiteBtn = target.closest('.graphite-btn') as HTMLElement;
+        
+        if (graphiteBtn) {
+          // Handle Graphite button click
+          const graphiteUrl = graphiteBtn.getAttribute('data-graphite-url');
+          if (graphiteUrl) {
+            rendererIpc.invoke('open-external', graphiteUrl);
+          }
+        } else {
+          // Handle regular PR click
+          rendererIpc.invoke('open-external', pr.html_url);
+        }
       });
 
       prList.appendChild(prItem);
@@ -213,6 +227,10 @@ class GitHubPRWidget {
     const title = tooltips[type][status as keyof typeof tooltips[typeof type]] || 'Status unknown';
     
     return `<span class="${className}" data-tooltip="${title}">${icon}</span>`;
+  }
+
+  private renderGraphiteButton(graphiteUrl: string): string {
+    return `<button class="graphite-btn" data-graphite-url="${graphiteUrl}" data-tooltip="View in Graphite 📚">📚</button>`;
   }
 
   private setLoading(isLoading: boolean): void {
