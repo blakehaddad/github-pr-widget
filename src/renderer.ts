@@ -1,5 +1,5 @@
-// GitHub Personal Access Token - reads from GITHUB_PAT environment variable
-const GITHUB_TOKEN = process.env.GITHUB_PAT || 'ghp_your_token_here';
+// GitHub Personal Access Token - reads from stored settings
+const { ipcRenderer: rendererIpc } = require('electron');
 
 interface PullRequest {
   id: number;
@@ -22,6 +22,7 @@ class GitHubPRWidget {
   private refreshBtn: HTMLButtonElement;
   private lastUpdated: HTMLElement;
   private refreshInterval: NodeJS.Timeout | null = null;
+  private githubToken: string = '';
 
   constructor() {
     this.container = document.getElementById('container')!;
@@ -32,11 +33,16 @@ class GitHubPRWidget {
     this.init();
   }
 
-  private init(): void {
+  private async init(): Promise<void> {
     this.refreshBtn.addEventListener('click', () => this.fetchPullRequests());
     
+    // Listen for token updates
+    rendererIpc.on('token-updated', () => {
+      this.loadTokenAndFetch();
+    });
+    
     // Initial load
-    this.fetchPullRequests();
+    await this.loadTokenAndFetch();
     
     // Set up auto-refresh every 10 minutes
     this.refreshInterval = setInterval(() => {
@@ -44,14 +50,33 @@ class GitHubPRWidget {
     }, 10 * 60 * 1000);
   }
 
+  private async loadTokenAndFetch(): Promise<void> {
+    try {
+      this.githubToken = await rendererIpc.invoke('get-github-token');
+      if (!this.githubToken) {
+        this.showError('No GitHub token configured. Please go to Settings to add your token.');
+        return;
+      }
+      await this.fetchPullRequests();
+    } catch (error) {
+      console.error('Error loading token:', error);
+      this.showError('Failed to load GitHub token');
+    }
+  }
+
   private async fetchPullRequests(): Promise<void> {
     try {
       this.setLoading(true);
       
+      if (!this.githubToken) {
+        this.showError('No GitHub token configured. Please go to Settings to add your token.');
+        return;
+      }
+      
       // Search for PRs where current user is the author
       const response = await fetch('https://api.github.com/search/issues?q=is:pr+is:open+author:@me', {
         headers: {
-          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Authorization': `token ${this.githubToken}`,
           'Accept': 'application/vnd.github.v3+json',
           'User-Agent': 'GitHub-PR-Widget'
         }

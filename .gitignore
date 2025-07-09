@@ -30,4 +30,5 @@ yarn-debug.log*
 yarn-error.log*
 
 # Claude Code files
-.claude/dist-electron/
+.claude/
+dist-electron/

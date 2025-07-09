@@ -1,7 +1,10 @@
-import { app, BrowserWindow, shell, Menu, MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, shell, Menu, MenuItemConstructorOptions, ipcMain } from 'electron';
 import * as path from 'path';
+import Store from 'electron-store';
 
 let mainWindow: BrowserWindow;
+let settingsWindow: BrowserWindow | null = null;
+const store = new Store();
 
 const createWindow = (): void => {
   mainWindow = new BrowserWindow({
@@ -37,7 +40,7 @@ const createWindow = (): void => {
     }
   });
 
-  // Toggle dev tools with Cmd+Option+I (Mac) or Ctrl+Shift+I (Windows/Linux)
+  // Toggle dev tools with Cmd+Option+I (Mac) or Ctrl+Shift+I (Windows/Linux)  
   mainWindow.webContents.on('before-input-event', (_, input) => {
     if (input.key === 'F12' || 
         (input.key === 'i' && input.meta && input.alt) || // Cmd+Option+I on Mac
@@ -58,6 +61,14 @@ const createMenu = (): void => {
           checked: true,
           click: (menuItem) => {
             mainWindow.setAlwaysOnTop(menuItem.checked);
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Settings...',
+          accelerator: process.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,',
+          click: () => {
+            createSettingsWindow();
           }
         },
         { type: 'separator' },
@@ -100,6 +111,62 @@ const createMenu = (): void => {
   Menu.setApplicationMenu(menu);
 };
 
+const createSettingsWindow = (): void => {
+  if (settingsWindow) {
+    settingsWindow.focus();
+    return;
+  }
+
+  settingsWindow = new BrowserWindow({
+    width: 500,
+    height: 400,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    parent: mainWindow,
+    modal: false,
+    alwaysOnTop: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+    show: false,
+  });
+
+  settingsWindow.loadFile(path.join(__dirname, 'settings.html'));
+
+  settingsWindow.once('ready-to-show', () => {
+    settingsWindow?.show();
+  });
+
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
+  });
+};
+
+// IPC handlers for settings
+ipcMain.handle('get-github-token', () => {
+  return (store as any).get('githubToken', '');
+});
+
+ipcMain.handle('set-github-token', (_, token: string) => {
+  (store as any).set('githubToken', token);
+  // Refresh the main window to use the new token
+  mainWindow.webContents.send('token-updated');
+  return true;
+});
+
+ipcMain.handle('open-external', (_, url: string) => {
+  shell.openExternal(url);
+});
+
+ipcMain.handle('close-settings', () => {
+  if (settingsWindow) {
+    settingsWindow.close();
+  }
+});
+
 app.whenReady().then(() => {
   createWindow();
   createMenu();
@@ -109,6 +176,11 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
+});
+
+// Export store for main window access
+ipcMain.handle('get-store-value', (_, key: string) => {
+  return (store as any).get(key);
 });
 
 app.on('window-all-closed', () => {
