@@ -35,6 +35,7 @@
       "dist/**/*",
       "src/renderer.html",
       "src/settings.html",
+      "src/assets/**/*",
       "node_modules/**/*"
     ],
     "mac": {
