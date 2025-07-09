@@ -24,6 +24,7 @@ class GitHubPRWidget {
   private container: HTMLElement;
   private loading: HTMLElement;
   private settingsBtn: HTMLButtonElement;
+  private refreshBtn: HTMLButtonElement;
   private refreshInterval: NodeJS.Timeout | null = null;
   private githubToken: string = '';
 
@@ -31,6 +32,7 @@ class GitHubPRWidget {
     this.container = document.getElementById('container')!;
     this.loading = document.getElementById('loading')!;
     this.settingsBtn = document.getElementById('settingsBtn') as HTMLButtonElement;
+    this.refreshBtn = document.getElementById('refreshBtn') as HTMLButtonElement;
 
     this.init();
   }
@@ -38,6 +40,10 @@ class GitHubPRWidget {
   private async init(): Promise<void> {
     this.settingsBtn.addEventListener('click', () => {
       rendererIpc.invoke('open-settings');
+    });
+
+    this.refreshBtn.addEventListener('click', () => {
+      this.fetchPullRequests();
     });
     
     // Listen for token updates
