@@ -91,10 +91,13 @@ class GitHubPRWidget {
       
       // Extract repo name from repository_url (e.g., "https://api.github.com/repos/user/repo" -> "repo")
       const repoName = pr.repository_url.split('/').pop() || 'Unknown';
+      
+      // Truncate title to 35 characters with ellipsis
+      const truncatedTitle = pr.title.length > 35 ? pr.title.substring(0, 35) + '...' : pr.title;
 
       prItem.innerHTML = `
         <div class="pr-title">
-          <a href="${pr.html_url}" target="_blank">${this.escapeHtml(pr.title)}</a>
+          <a href="${pr.html_url}" target="_blank" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(truncatedTitle)}</a>
         </div>
         <div class="pr-meta">
           <span class="pr-repo">${this.escapeHtml(repoName)}</span>

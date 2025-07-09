@@ -1,10 +1,12 @@
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, shell, Menu, MenuItemConstructorOptions } from 'electron';
 import * as path from 'path';
 
+let mainWindow: BrowserWindow;
+
 const createWindow = (): void => {
-  const mainWindow = new BrowserWindow({
-    height: 600,
-    width: 400,
+  mainWindow = new BrowserWindow({
+    height: 300,
+    width: 380,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -45,8 +47,62 @@ const createWindow = (): void => {
   });
 };
 
+const createMenu = (): void => {
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: 'GitHub PR Widget',
+      submenu: [
+        {
+          label: 'Always on Top',
+          type: 'checkbox',
+          checked: true,
+          click: (menuItem) => {
+            mainWindow.setAlwaysOnTop(menuItem.checked);
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Toggle Developer Tools',
+          accelerator: process.platform === 'darwin' ? 'Cmd+Alt+I' : 'Ctrl+Shift+I',
+          click: () => {
+            mainWindow.webContents.toggleDevTools();
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Quit',
+          accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
+          click: () => {
+            app.quit();
+          }
+        }
+      ]
+    }
+  ];
+
+  // On macOS, add standard Edit menu for copy/paste functionality
+  if (process.platform === 'darwin') {
+    template.push({
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' }
+      ]
+    });
+  }
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+};
+
 app.whenReady().then(() => {
   createWindow();
+  createMenu();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
