@@ -189,6 +189,18 @@ ipcMain.handle('resize-window', (_, height: number) => {
   }
 });
 
+// Theme management IPC handlers
+ipcMain.handle('get-theme', () => {
+  return (store as any).get('theme', null);
+});
+
+ipcMain.handle('set-theme', (_, theme: any) => {
+  (store as any).set('theme', theme);
+  // Notify main window of theme change
+  mainWindow.webContents.send('theme-updated');
+  return true;
+});
+
 app.whenReady().then(() => {
   createWindow();
   createMenu();

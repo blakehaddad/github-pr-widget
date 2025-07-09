@@ -1,5 +1,6 @@
 // GitHub Personal Access Token - reads from stored settings
 /// <reference path="./GithubProvider.ts" />
+/// <reference path="./PRRenderer.ts" />
 
 const { ipcRenderer: rendererIpc } = require('electron');
 const fs = require('fs');
@@ -17,6 +18,54 @@ const DESIGN_TOKENS = {
   bufferHeight: 15,
   minWindowHeight: 220
 } as const;
+
+// Default theme colors
+const DEFAULT_THEME = {
+  // Primary accent color (blue)
+  primaryHue: 213,
+  primarySaturation: 100,
+  primaryLightness: 76,
+  
+  // Background gradients
+  bgPrimary: '#0d1117',
+  bgSecondary: '#161b22', 
+  bgTertiary: '#1c2128',
+  
+  // Accent colors for gradients
+  accentPrimary: 'rgba(88, 166, 255, 0.1)',
+  accentSecondary: 'rgba(139, 148, 158, 0.08)',
+  
+  // Text colors
+  textPrimary: '#f0f6fc',
+  textSecondary: '#8b949e',
+  
+  // Status colors
+  successColor: '#28a745',
+  errorColor: '#f85149',
+  warningColor: '#ffc107',
+  
+  // Interactive elements
+  borderColor: 'rgba(255, 255, 255, 0.1)',
+  borderColorHover: 'rgba(88, 166, 255, 0.3)'
+} as const;
+
+interface ThemeColors {
+  primaryHue: number;
+  primarySaturation: number;
+  primaryLightness: number;
+  bgPrimary: string;
+  bgSecondary: string;
+  bgTertiary: string;
+  accentPrimary: string;
+  accentSecondary: string;
+  textPrimary: string;
+  textSecondary: string;
+  successColor: string;
+  errorColor: string;
+  warningColor: string;
+  borderColor: string;
+  borderColorHover: string;
+}
 
 interface PullRequest {
   id: number;
@@ -38,6 +87,76 @@ interface PullRequest {
   graphite_url?: string;
 }
 
+class ThemeManager {
+  private currentTheme: ThemeColors = { ...DEFAULT_THEME };
+
+  async loadTheme(): Promise<void> {
+    try {
+      const savedTheme = await rendererIpc.invoke('get-theme');
+      if (savedTheme) {
+        this.currentTheme = { ...DEFAULT_THEME, ...savedTheme };
+      }
+    } catch (error) {
+      console.error('Error loading theme:', error);
+    }
+  }
+
+  async saveTheme(theme: Partial<ThemeColors>): Promise<void> {
+    this.currentTheme = { ...this.currentTheme, ...theme };
+    try {
+      await rendererIpc.invoke('set-theme', this.currentTheme);
+    } catch (error) {
+      console.error('Error saving theme:', error);
+    }
+  }
+
+  async resetToDefault(): Promise<void> {
+    this.currentTheme = { ...DEFAULT_THEME };
+    try {
+      await rendererIpc.invoke('set-theme', this.currentTheme);
+    } catch (error) {
+      console.error('Error resetting theme:', error);
+    }
+  }
+
+  getTheme(): ThemeColors {
+    return { ...this.currentTheme };
+  }
+
+  injectThemeVariables(): void {
+    const root = document.documentElement;
+    const theme = this.currentTheme;
+    
+    // Primary color as HSL for easy manipulation
+    root.style.setProperty('--primary-hue', theme.primaryHue.toString());
+    root.style.setProperty('--primary-saturation', `${theme.primarySaturation}%`);
+    root.style.setProperty('--primary-lightness', `${theme.primaryLightness}%`);
+    root.style.setProperty('--primary-color', `hsl(${theme.primaryHue}, ${theme.primarySaturation}%, ${theme.primaryLightness}%)`);
+    
+    // Background colors
+    root.style.setProperty('--bg-primary', theme.bgPrimary);
+    root.style.setProperty('--bg-secondary', theme.bgSecondary);
+    root.style.setProperty('--bg-tertiary', theme.bgTertiary);
+    
+    // Accent colors
+    root.style.setProperty('--accent-primary', theme.accentPrimary);
+    root.style.setProperty('--accent-secondary', theme.accentSecondary);
+    
+    // Text colors
+    root.style.setProperty('--text-primary', theme.textPrimary);
+    root.style.setProperty('--text-secondary', theme.textSecondary);
+    
+    // Status colors
+    root.style.setProperty('--success-color', theme.successColor);
+    root.style.setProperty('--error-color', theme.errorColor);
+    root.style.setProperty('--warning-color', theme.warningColor);
+    
+    // Interactive elements
+    root.style.setProperty('--border-color', theme.borderColor);
+    root.style.setProperty('--border-color-hover', theme.borderColorHover);
+  }
+}
+
 class GitHubPRWidget {
   private container: HTMLElement;
   private loading: HTMLElement;
@@ -48,6 +167,7 @@ class GitHubPRWidget {
   private githubToken: string = '';
   private githubProvider: GithubProvider;
   private currentPRs: PullRequest[] = [];
+  private themeManager: ThemeManager;
 
   constructor() {
     this.container = document.getElementById('container')!;
@@ -56,6 +176,7 @@ class GitHubPRWidget {
     this.refreshBtn = document.getElementById('refreshBtn') as HTMLButtonElement;
     this.resizeZone = document.getElementById('resizeZone')!;
     this.githubProvider = new GithubProvider('');
+    this.themeManager = new ThemeManager();
 
     this.init();
   }
@@ -83,8 +204,10 @@ class GitHubPRWidget {
   }
 
   private async init(): Promise<void> {
-    // Inject CSS variables from design tokens
+    // Load theme and inject CSS variables
+    await this.themeManager.loadTheme();
     this.injectCSSVariables();
+    this.themeManager.injectThemeVariables();
     
     // Load refresh icon
     this.loadRefreshIcon();
@@ -105,6 +228,12 @@ class GitHubPRWidget {
     // Listen for token updates
     rendererIpc.on('token-updated', () => {
       this.loadTokenAndFetch();
+    });
+
+    // Listen for theme updates
+    rendererIpc.on('theme-updated', async () => {
+      await this.themeManager.loadTheme();
+      this.themeManager.injectThemeVariables();
     });
     
     // Initial load
@@ -184,52 +313,7 @@ class GitHubPRWidget {
     prList.className = 'pr-list';
 
     pullRequests.forEach(pr => {
-      const prItem = document.createElement('div');
-      prItem.className = 'pr-item';
-
-      const state = pr.draft ? 'draft' : pr.state;
-      const stateDisplay = pr.draft ? 'Draft' : pr.state;
-      
-      // Extract repo name from repository_url (e.g., "https://api.github.com/repos/user/repo" -> "repo")
-      const repoName = pr.repository_url.split('/').pop() || 'Unknown';
-      
-      // Don't truncate in JS - let CSS handle it with available space
-
-      prItem.innerHTML = `
-        <div class="pr-header">
-          <img class="pr-avatar" src="${pr.user.avatar_url}" alt="${pr.user.login}" onerror="this.style.display='none'">
-          <div class="pr-title">
-            <a href="${pr.html_url}" target="_blank" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</a>
-          </div>
-          <div class="pr-status-indicators">
-            ${this.renderStatusIndicator('ci', pr.ci_status)}
-            ${this.renderStatusIndicator('review', pr.review_status)}
-            ${pr.graphite_url ? this.renderGraphiteButton(pr.graphite_url) : ''}
-          </div>
-        </div>
-        <div class="pr-meta">
-          <span class="pr-repo">${this.escapeHtml(repoName)}</span>
-          <span class="pr-state ${state}">${stateDisplay}</span>
-        </div>
-      `;
-      
-      // Add click handler to open PR (but not when clicking on buttons)
-      prItem.addEventListener('click', (event) => {
-        const target = event.target as HTMLElement;
-        const graphiteBtn = target.closest('.graphite-btn') as HTMLElement;
-        
-        if (graphiteBtn) {
-          // Handle Graphite button click
-          const graphiteUrl = graphiteBtn.getAttribute('data-graphite-url');
-          if (graphiteUrl) {
-            rendererIpc.invoke('open-external', graphiteUrl);
-          }
-        } else {
-          // Handle regular PR click
-          rendererIpc.invoke('open-external', pr.html_url);
-        }
-      });
-
+      const prItem = PRRenderer.renderPRItem(pr, false);
       prList.appendChild(prItem);
     });
 
@@ -237,51 +321,6 @@ class GitHubPRWidget {
     this.container.appendChild(prList);
   }
 
-  private renderStatusIndicator(type: 'ci' | 'review', status?: string): string {
-    if (!status) return '';
-    
-    const icons = {
-      ci: {
-        success: '✓',
-        failure: '✗',
-        pending: '⏳',
-        unknown: '?'
-      },
-      review: {
-        approved: '✓',
-        changes_requested: '✗',
-        pending: '⏳',
-        unknown: '?'
-      }
-    };
-    
-    const icon = icons[type][status as keyof typeof icons[typeof type]] || '?';
-    const className = `status-indicator ${type}-${status}`;
-    
-    // Enhanced tooltips with clear descriptions
-    const tooltips = {
-      ci: {
-        success: 'CI Checks: Passed ✓',
-        failure: 'CI Checks: Fail ✗',
-        pending: 'CI Checks: Running ⏳',
-        unknown: 'CI Checks: Unknown ?'
-      },
-      review: {
-        approved: 'Code Review: Approved by reviewer(s) ✓',
-        changes_requested: 'Code Review: Changes requested ✗',
-        pending: 'Code Review: Waiting for review ⏳',
-        unknown: 'Code Review: No review activity ?'
-      }
-    };
-    
-    const title = tooltips[type][status as keyof typeof tooltips[typeof type]] || 'Status unknown';
-    
-    return `<span class="${className}" data-tooltip="${title}">${icon}</span>`;
-  }
-
-  private renderGraphiteButton(graphiteUrl: string): string {
-    return `<button class="graphite-btn" data-graphite-url="${graphiteUrl}" data-tooltip="View in Graphite 📚">📚</button>`;
-  }
 
   private setLoading(isLoading: boolean): void {
     this.settingsBtn.disabled = isLoading;
@@ -332,10 +371,17 @@ class GitHubPRWidget {
   }
 }
 
+// Global theme manager instance for settings page access
+let globalThemeManager: ThemeManager;
+
 // Initialize the widget when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  new GitHubPRWidget();
+  const widget = new GitHubPRWidget();
+  globalThemeManager = (widget as any).themeManager;
 });
+
+// Expose theme manager for settings window
+(window as any).getThemeManager = () => globalThemeManager;
 
 // Handle app closing
 window.addEventListener('beforeunload', () => {
