@@ -5,6 +5,19 @@ const { ipcRenderer: rendererIpc } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
+// Design tokens - single source of truth for layout dimensions
+const DESIGN_TOKENS = {
+  headerHeight: 41,
+  prItemHeight: 58,
+  prListGap: 8,
+  containerPadding: 40,
+  resizeZoneHeight: 15,
+  emptyStateHeight: 180,
+  loadingHeight: 140,
+  bufferHeight: 15,
+  minWindowHeight: 220
+} as const;
+
 interface PullRequest {
   id: number;
   number: number; // PR number (different from id)
@@ -47,6 +60,16 @@ class GitHubPRWidget {
     this.init();
   }
 
+  private injectCSSVariables(): void {
+    const root = document.documentElement;
+    root.style.setProperty('--header-height', `${DESIGN_TOKENS.headerHeight}px`);
+    root.style.setProperty('--pr-item-height', `${DESIGN_TOKENS.prItemHeight}px`);
+    root.style.setProperty('--pr-list-gap', `${DESIGN_TOKENS.prListGap}px`);
+    root.style.setProperty('--container-padding-top', '2px');
+    root.style.setProperty('--container-padding-bottom', '12px');
+    root.style.setProperty('--resize-zone-height', `${DESIGN_TOKENS.resizeZoneHeight}px`);
+  }
+
   private loadRefreshIcon(): void {
     try {
       const iconPath = path.join(__dirname, '../src/assets/icons/refresh.svg');
@@ -60,6 +83,9 @@ class GitHubPRWidget {
   }
 
   private async init(): Promise<void> {
+    // Inject CSS variables from design tokens
+    this.injectCSSVariables();
+    
     // Load refresh icon
     this.loadRefreshIcon();
     
@@ -278,34 +304,22 @@ class GitHubPRWidget {
   }
 
   private autoFitHeight(): void {
-    const headerHeight = 41; // Height of header bar
-    const resizeZoneHeight = 15; // Height of resize zone
-    const containerPadding = 40; // Padding in container
-    const prItemHeight = 58; // Height of each PR item
-    const prItemGap = 8; // Gap between PR items (from CSS .pr-list gap)
-    const emptyStateHeight = 180; // Height when no PRs
-    const loadingHeight = 140; // Height when loading
-    
     let contentHeight: number;
     
     if (this.currentPRs.length === 0) {
       // Empty state or loading
-      contentHeight = this.loading.style.display !== 'none' ? loadingHeight : emptyStateHeight;
+      contentHeight = this.loading.style.display !== 'none' ? DESIGN_TOKENS.loadingHeight : DESIGN_TOKENS.emptyStateHeight;
     } else {
       // Calculate based on PR count: items + gaps between items + padding
-      const gapHeight = Math.max(0, (this.currentPRs.length - 1) * prItemGap);
-      contentHeight = (this.currentPRs.length * prItemHeight) + gapHeight + containerPadding;
+      const gapHeight = Math.max(0, (this.currentPRs.length - 1) * DESIGN_TOKENS.prListGap);
+      contentHeight = (this.currentPRs.length * DESIGN_TOKENS.prItemHeight) + gapHeight + DESIGN_TOKENS.containerPadding;
     }
     
-    const totalHeight = headerHeight + contentHeight + resizeZoneHeight;
-    
-    // Add extra buffer to make window slightly taller
-    const bufferHeight = 15;
+    const totalHeight = DESIGN_TOKENS.headerHeight + contentHeight + DESIGN_TOKENS.resizeZoneHeight;
     
     // Set reasonable min/max bounds
-    const minHeight = 220;
     const maxHeight = Math.floor(window.screen.availHeight * 0.8); // 80% of screen height
-    const finalHeight = Math.max(minHeight, Math.min(totalHeight + bufferHeight, maxHeight));
+    const finalHeight = Math.max(DESIGN_TOKENS.minWindowHeight, Math.min(totalHeight + DESIGN_TOKENS.bufferHeight, maxHeight));
     
     // Send resize request to main process
     rendererIpc.invoke('resize-window', finalHeight);

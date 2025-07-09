@@ -42,6 +42,7 @@
 
     .header {
       padding: 10px 14px;
+      height: var(--header-height);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -125,10 +126,10 @@
     }
 
     .container {
-      height: calc(100vh - 41px);
+      height: calc(100vh - var(--header-height));
       overflow-y: auto;
       overflow-x: visible;
-      padding: 2px 12px 12px;
+      padding: var(--container-padding-top) 12px var(--container-padding-bottom);
       position: relative;
       z-index: 2;
     }
@@ -167,7 +168,7 @@
     .pr-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: var(--pr-list-gap);
       overflow: visible;
     }
 
@@ -652,7 +653,7 @@
       bottom: 0;
       left: 0;
       right: 0;
-      height: 15px;
+      height: var(--resize-zone-height);
       cursor: ns-resize;
       background: transparent;
       transition: all 0.3s ease;
