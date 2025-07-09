@@ -119,7 +119,7 @@ const createSettingsWindow = (): void => {
 
   settingsWindow = new BrowserWindow({
     width: 520,
-    height: 480,
+    height: 510,
     resizable: false,
     minimizable: false,
     maximizable: false,
@@ -143,6 +143,15 @@ const createSettingsWindow = (): void => {
 
   settingsWindow.on('closed', () => {
     settingsWindow = null;
+  });
+
+  // Toggle dev tools with Cmd+Option+I (Mac) or Ctrl+Shift+I (Windows/Linux)  
+  settingsWindow.webContents.on('before-input-event', (_, input) => {
+    if (input.key === 'F12' || 
+        (input.key === 'i' && input.meta && input.alt) || // Cmd+Option+I on Mac
+        (input.key === 'I' && input.control && input.shift)) { // Ctrl+Shift+I on Windows/Linux
+      settingsWindow?.webContents.toggleDevTools();
+    }
   });
 };
 
