@@ -33,6 +33,7 @@ class GitHubPRWidget {
   private refreshInterval: NodeJS.Timeout | null = null;
   private githubToken: string = '';
   private githubProvider: GithubProvider;
+  private currentPRs: PullRequest[] = [];
 
   constructor() {
     this.container = document.getElementById('container')!;
@@ -76,10 +77,10 @@ class GitHubPRWidget {
     // Initial load
     await this.loadTokenAndFetch();
     
-    // Set up auto-refresh every 10 minutes
+    // Set up auto-refresh every 30 seconds
     this.refreshInterval = setInterval(() => {
-      this.fetchPullRequests();
-    }, 10 * 60 * 1000);
+      this.fetchPullRequests(true); // true = silent refresh (no loading animation)
+    }, 30 * 1000);
   }
 
   private async loadTokenAndFetch(): Promise<void> {
@@ -98,9 +99,11 @@ class GitHubPRWidget {
   }
 
 
-  private async fetchPullRequests(): Promise<void> {
+  private async fetchPullRequests(silent: boolean = false): Promise<void> {
     try {
-      this.setLoading(true);
+      if (!silent) {
+        this.setLoading(true);
+      }
       
       if (!this.githubToken) {
         this.showError('No GitHub token configured. Please go to Settings to add your token.');
@@ -108,14 +111,28 @@ class GitHubPRWidget {
       }
       
       const pullRequests = await this.githubProvider.fetchPullRequests();
-      this.renderPullRequests(pullRequests);
+      
+      // Only update UI if data has changed
+      if (this.hasPRsChanged(pullRequests)) {
+        this.currentPRs = pullRequests;
+        this.renderPullRequests(pullRequests);
+      }
       
     } catch (error) {
       console.error('Error fetching pull requests:', error);
-      this.showError(error instanceof Error ? error.message : 'Unknown error occurred');
+      // Only show error UI if not silent refresh
+      if (!silent) {
+        this.showError(error instanceof Error ? error.message : 'Unknown error occurred');
+      }
     } finally {
-      this.setLoading(false);
+      if (!silent) {
+        this.setLoading(false);
+      }
     }
+  }
+
+  private hasPRsChanged(newPRs: PullRequest[]): boolean {
+    return JSON.stringify(this.currentPRs) !== JSON.stringify(newPRs);
   }
 
   private renderPullRequests(pullRequests: PullRequest[]): void {
