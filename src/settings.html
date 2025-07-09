@@ -21,7 +21,8 @@
       padding: 20px;
       min-height: 100vh;
       position: relative;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     /* Subtle animated background overlay */
@@ -42,7 +43,7 @@
     }
 
     .settings-container {
-      max-width: 420px;
+      max-width: 440px;
       margin: 0 auto;
       position: relative;
       z-index: 2;
@@ -54,7 +55,7 @@
       backdrop-filter: blur(20px) saturate(180%);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 16px;
-      padding: 24px;
+      padding: 20px;
       box-shadow: 
         0 1px 0 rgba(255, 255, 255, 0.1) inset,
         0 8px 32px rgba(0, 0, 0, 0.3),
@@ -75,11 +76,11 @@
 
     .header {
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
       -webkit-app-region: drag;
       cursor: move;
-      padding: 16px;
-      margin: -16px -16px 32px -16px;
+      padding: 12px;
+      margin: -12px -12px 24px -12px;
       border-radius: 12px 12px 0 0;
       background: 
         linear-gradient(135deg, 
@@ -411,6 +412,33 @@
 
     .token-status {
       position: relative;
+    }
+
+    /* Custom scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(13, 17, 23, 0.3);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: 
+        linear-gradient(135deg, 
+          rgba(48, 54, 61, 0.8) 0%, 
+          rgba(61, 68, 77, 0.6) 100%);
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: 
+        linear-gradient(135deg, 
+          rgba(61, 68, 77, 0.9) 0%, 
+          rgba(72, 79, 88, 0.7) 100%);
     }
   </style>
 </head>
