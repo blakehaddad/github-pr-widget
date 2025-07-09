@@ -281,7 +281,8 @@ class GitHubPRWidget {
     const headerHeight = 41; // Height of header bar
     const resizeZoneHeight = 15; // Height of resize zone
     const containerPadding = 40; // Padding in container
-    const prItemHeight = 58; // Height of each PR item (including gap)
+    const prItemHeight = 58; // Height of each PR item
+    const prItemGap = 8; // Gap between PR items (from CSS .pr-list gap)
     const emptyStateHeight = 180; // Height when no PRs
     const loadingHeight = 140; // Height when loading
     
@@ -291,8 +292,9 @@ class GitHubPRWidget {
       // Empty state or loading
       contentHeight = this.loading.style.display !== 'none' ? loadingHeight : emptyStateHeight;
     } else {
-      // Calculate based on PR count with extra padding
-      contentHeight = (this.currentPRs.length * prItemHeight) + containerPadding;
+      // Calculate based on PR count: items + gaps between items + padding
+      const gapHeight = Math.max(0, (this.currentPRs.length - 1) * prItemGap);
+      contentHeight = (this.currentPRs.length * prItemHeight) + gapHeight + containerPadding;
     }
     
     const totalHeight = headerHeight + contentHeight + resizeZoneHeight;
