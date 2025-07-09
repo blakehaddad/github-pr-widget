@@ -1,0 +1,21 @@
+{
+  "name": "github-pr-widget",
+  "version": "1.0.0",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && electron .",
+    "dev": "tsc && electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "A floating Electron app to view GitHub pull requests",
+  "devDependencies": {
+    "@types/electron": "^1.4.38",
+    "@types/node": "^24.0.12",
+    "electron": "^37.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
