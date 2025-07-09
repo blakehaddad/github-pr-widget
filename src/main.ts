@@ -127,6 +127,7 @@ const createSettingsWindow = (): void => {
     parent: mainWindow,
     modal: false,
     alwaysOnTop: true,
+    frame: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
