@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GitHub PR Widget Settings</title>
+  <link rel="stylesheet" href="../dist/shared-pr-styles.css">
   <style>
     * {
       margin: 0;
@@ -75,7 +76,9 @@
     }
 
     .header {
-      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 24px;
       padding: 12px;
       margin: -12px -12px 24px -12px;
@@ -98,7 +101,12 @@
         0 4px 16px rgba(0, 0, 0, 0.2);
     }
 
-    .header h1 {
+    .header-content {
+      text-align: center;
+      flex: 1;
+    }
+
+    .header-content h1 {
       font-size: 24px;
       font-weight: 600;
       margin-bottom: 8px;
@@ -110,11 +118,48 @@
       background-clip: text;
     }
 
-    .header p {
+    .header-content p {
       font-size: 14px;
       color: #8b949e;
       line-height: 1.4;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .close-btn {
+      background: 
+        linear-gradient(135deg, 
+          rgba(33, 38, 45, 0.8) 0%, 
+          rgba(48, 54, 61, 0.6) 100%);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #8b949e;
+      font-size: 24px;
+      font-weight: 300;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .close-btn:hover {
+      color: #f0f6fc;
+      background: 
+        linear-gradient(135deg, 
+          rgba(48, 54, 61, 0.9) 0%, 
+          rgba(61, 68, 77, 0.7) 100%);
+      box-shadow: 
+        0 1px 0 rgba(255, 255, 255, 0.2) inset,
+        0 0 16px rgba(248, 81, 73, 0.3),
+        0 4px 16px rgba(0, 0, 0, 0.3);
+      border-color: rgba(248, 81, 73, 0.4);
+      transform: scale(1.05);
     }
 
     .form-group {
@@ -436,13 +481,196 @@
           rgba(61, 68, 77, 0.9) 0%, 
           rgba(72, 79, 88, 0.7) 100%);
     }
+
+    /* Theme Section Styles */
+    .theme-section {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .section-header h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #f0f6fc;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .section-header p {
+      font-size: 13px;
+      color: #8b949e;
+      line-height: 1.4;
+    }
+
+    .theme-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .color-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .color-group label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #f0f6fc;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .color-input-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input[type="color"] {
+      width: 40px;
+      height: 32px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    input[type="color"]:hover {
+      border-color: rgba(88, 166, 255, 0.3);
+      box-shadow: 0 0 8px rgba(88, 166, 255, 0.2);
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 4px;
+      background: linear-gradient(135deg, 
+        rgba(22, 27, 34, 0.8) 0%, 
+        rgba(28, 33, 40, 0.6) 100%);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #58a6ff 0%, #79c0ff 100%);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 12px rgba(88, 166, 255, 0.5);
+    }
+
+    #hueValue {
+      font-size: 12px;
+      color: #8b949e;
+      font-weight: 500;
+      min-width: 35px;
+    }
+
+    .theme-preview {
+      background: var(--bg-primary, #161b22);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      opacity: 0.4;
+    }
+
+
+    .preview-pr-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .preview-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary, #f0f6fc);
+    }
+
+    .preview-status {
+      display: flex;
+      gap: 4px;
+    }
+
+    .preview-status-success {
+      color: var(--success-color, #28a745);
+      font-size: 10px;
+    }
+
+    .preview-status-error {
+      color: var(--error-color, #f85149);
+      font-size: 10px;
+    }
+
+    .preview-status-pending {
+      color: var(--warning-color, #ffc107);
+      font-size: 10px;
+    }
+
+    .theme-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .theme-buttons .btn {
+      flex: 1;
+    }
+
+    /* Global Close Section */
+    .global-close-section {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+    }
+
+    .btn-close-settings {
+      min-width: 160px;
+      font-weight: 500;
+    }
+
+    .btn-close-settings:hover {
+      background: 
+        linear-gradient(135deg, 
+          rgba(61, 68, 77, 0.9) 0%, 
+          rgba(72, 79, 88, 0.7) 100%);
+      box-shadow: 
+        0 1px 0 rgba(255, 255, 255, 0.2) inset,
+        0 0 16px rgba(88, 166, 255, 0.2),
+        0 8px 32px rgba(0, 0, 0, 0.3);
+      border-color: rgba(88, 166, 255, 0.3);
+      transform: translateY(-1px);
+    }
   </style>
 </head>
 <body>
   <div class="settings-container">
     <div class="header">
-      <h1>Settings</h1>
-      <p>Configure your GitHub Personal Access Token to view your pull requests</p>
+      <div class="header-content">
+        <h1>Settings</h1>
+        <p>Configure your GitHub Personal Access Token and customize your theme</p>
+      </div>
+      <button class="close-btn" id="closeBtn" title="Close Settings">×</button>
     </div>
 
     <div id="tokenStatus" class="token-status"></div>
@@ -467,12 +695,63 @@
       </div>
 
       <div class="button-group">
-        <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
         <button type="submit" class="btn btn-primary" id="saveBtn">Save Token</button>
       </div>
     </form>
+
+    <!-- Theme Customization Section -->
+    <div class="theme-section">
+      <div class="section-header">
+        <h2>Theme Customization</h2>
+        <p>Customize the colors and appearance of your widget</p>
+      </div>
+
+      <div id="themeForm">
+        <div class="theme-grid">
+          <div class="color-group">
+            <label for="bgPrimary">Background Primary</label>
+            <input type="color" id="bgPrimary" value="#0d1117">
+          </div>
+
+          <div class="color-group">
+            <label for="bgSecondary">Background Secondary</label>
+            <input type="color" id="bgSecondary" value="#161b22">
+          </div>
+
+          <div class="color-group">
+            <label for="textPrimary">Text Primary</label>
+            <input type="color" id="textPrimary" value="#f0f6fc">
+          </div>
+
+          <div class="color-group">
+            <label for="successColor">Success Color</label>
+            <input type="color" id="successColor" value="#28a745">
+          </div>
+
+          <div class="color-group">
+            <label for="errorColor">Error Color</label>
+            <input type="color" id="errorColor" value="#f85149">
+          </div>
+        </div>
+
+        <div class="theme-preview">
+          <!-- Preview will be rendered here by JavaScript -->
+        </div>
+
+        <div class="theme-buttons">
+          <button type="button" class="btn btn-secondary" id="resetTheme">Reset to Default</button>
+          <button type="button" class="btn btn-primary" id="applyTheme">Apply Theme</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global Close Button -->
+    <div class="global-close-section">
+      <button type="button" class="btn btn-secondary btn-close-settings" id="closeSettingsBtn">Close Settings</button>
+    </div>
   </div>
 
-  <script src="./settings.js"></script>
+  <script src="../dist/PRRenderer.js"></script>
+  <script src="../dist/settings.js"></script>
 </body>
 </html>
