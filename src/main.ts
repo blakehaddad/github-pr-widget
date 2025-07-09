@@ -167,6 +167,10 @@ ipcMain.handle('close-settings', () => {
   }
 });
 
+ipcMain.handle('open-settings', () => {
+  createSettingsWindow();
+});
+
 app.whenReady().then(() => {
   createWindow();
   createMenu();

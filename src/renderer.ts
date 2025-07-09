@@ -10,6 +10,10 @@ interface PullRequest {
   draft: boolean;
   created_at: string;
   updated_at: string;
+  user: {
+    login: string;
+    avatar_url: string;
+  };
 }
 
 interface GitHubResponse {
@@ -19,22 +23,22 @@ interface GitHubResponse {
 class GitHubPRWidget {
   private container: HTMLElement;
   private loading: HTMLElement;
-  private refreshBtn: HTMLButtonElement;
-  private lastUpdated: HTMLElement;
+  private settingsBtn: HTMLButtonElement;
   private refreshInterval: NodeJS.Timeout | null = null;
   private githubToken: string = '';
 
   constructor() {
     this.container = document.getElementById('container')!;
     this.loading = document.getElementById('loading')!;
-    this.refreshBtn = document.getElementById('refreshBtn') as HTMLButtonElement;
-    this.lastUpdated = document.getElementById('lastUpdated')!;
+    this.settingsBtn = document.getElementById('settingsBtn') as HTMLButtonElement;
 
     this.init();
   }
 
   private async init(): Promise<void> {
-    this.refreshBtn.addEventListener('click', () => this.fetchPullRequests());
+    this.settingsBtn.addEventListener('click', () => {
+      rendererIpc.invoke('open-settings');
+    });
     
     // Listen for token updates
     rendererIpc.on('token-updated', () => {
@@ -88,7 +92,6 @@ class GitHubPRWidget {
 
       const data: GitHubResponse = await response.json();
       this.renderPullRequests(data.items);
-      this.updateLastUpdated();
       
     } catch (error) {
       console.error('Error fetching pull requests:', error);
@@ -100,7 +103,13 @@ class GitHubPRWidget {
 
   private renderPullRequests(pullRequests: PullRequest[]): void {
     if (pullRequests.length === 0) {
-      this.container.innerHTML = '<div class="loading">No open pull requests found</div>';
+      this.container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <div class="empty-state-title">No pull requests found</div>
+          <div class="empty-state-message">You don't have any open pull requests at the moment.</div>
+        </div>
+      `;
       return;
     }
 
@@ -117,18 +126,26 @@ class GitHubPRWidget {
       // Extract repo name from repository_url (e.g., "https://api.github.com/repos/user/repo" -> "repo")
       const repoName = pr.repository_url.split('/').pop() || 'Unknown';
       
-      // Truncate title to 35 characters with ellipsis
-      const truncatedTitle = pr.title.length > 35 ? pr.title.substring(0, 35) + '...' : pr.title;
+      // Truncate title to fit better
+      const truncatedTitle = pr.title.length > 50 ? pr.title.substring(0, 50) + '...' : pr.title;
 
       prItem.innerHTML = `
-        <div class="pr-title">
-          <a href="${pr.html_url}" target="_blank" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(truncatedTitle)}</a>
+        <div class="pr-header">
+          <img class="pr-avatar" src="${pr.user.avatar_url}" alt="${pr.user.login}" onerror="this.style.display='none'">
+          <div class="pr-title">
+            <a href="${pr.html_url}" target="_blank" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(truncatedTitle)}</a>
+          </div>
         </div>
         <div class="pr-meta">
           <span class="pr-repo">${this.escapeHtml(repoName)}</span>
           <span class="pr-state ${state}">${stateDisplay}</span>
         </div>
       `;
+      
+      // Add click handler to open PR
+      prItem.addEventListener('click', () => {
+        rendererIpc.invoke('open-external', pr.html_url);
+      });
 
       prList.appendChild(prItem);
     });
@@ -138,8 +155,7 @@ class GitHubPRWidget {
   }
 
   private setLoading(isLoading: boolean): void {
-    this.refreshBtn.disabled = isLoading;
-    this.refreshBtn.textContent = isLoading ? 'Loading...' : 'Refresh';
+    this.settingsBtn.disabled = isLoading;
     
     if (isLoading) {
       this.loading.style.display = 'block';
@@ -149,13 +165,7 @@ class GitHubPRWidget {
   }
 
   private showError(message: string): void {
-    this.container.innerHTML = `<div class="error">Error: ${this.escapeHtml(message)}</div>`;
-  }
-
-  private updateLastUpdated(): void {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString();
-    this.lastUpdated.textContent = `Last updated: ${timeString}`;
+    this.container.innerHTML = `<div class="error">${this.escapeHtml(message)}</div>`;
   }
 
   private escapeHtml(text: string): string {
