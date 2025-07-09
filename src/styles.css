@@ -69,6 +69,7 @@ body::before {
   background: transparent;
   position: relative;
   z-index: 10;
+  -webkit-app-region: drag;
 }
 
 .title {
@@ -127,6 +128,10 @@ body::before {
   color: var(--text-secondary);
   opacity: 0.4;
   transition: all 0.3s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .resize-zone:hover {
@@ -135,6 +140,14 @@ body::before {
               rgba(88, 166, 255, 0.1) 100%);
   opacity: 0.8;
   color: var(--primary-color);
+}
+
+.resize-zone:active {
+  background: linear-gradient(to bottom, 
+              transparent 0%, 
+              rgba(88, 166, 255, 0.2) 100%);
+  opacity: 1;
+  transform: scale(0.98);
 }
 
 /* Component styles */
@@ -158,6 +171,7 @@ body::before {
   transition: all 0.3s ease;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset,
               0 2px 8px rgba(0, 0, 0, 0.2);
+  -webkit-app-region: no-drag;
 }
 
 .btn-header::before {
@@ -199,10 +213,10 @@ body::before {
   border: 1px solid var(--border-color);
   cursor: pointer;
   background: linear-gradient(135deg, 
-              rgba(51, 65, 85, 0.7) 0%, 
-              rgba(71, 85, 105, 0.5) 50%,
-              rgba(100, 116, 139, 0.6) 100%);
-  backdrop-filter: blur(16px) saturate(180%);
+              rgba(51, 65, 85, 0.4) 0%, 
+              rgba(71, 85, 105, 0.3) 50%,
+              rgba(100, 116, 139, 0.35) 100%);
+  backdrop-filter: blur(8px) saturate(120%);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: visible;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset,
@@ -246,9 +260,9 @@ body::before {
               0 8px 32px rgba(88, 166, 255, 0.15),
               0 16px 64px rgba(0, 0, 0, 0.2);
   background: linear-gradient(135deg, 
-              rgba(28, 33, 40, 0.8) 0%, 
-              rgba(33, 38, 45, 0.6) 50%,
-              rgba(39, 45, 52, 0.7) 100%);
+              rgba(28, 33, 40, 0.5) 0%, 
+              rgba(33, 38, 45, 0.4) 50%,
+              rgba(39, 45, 52, 0.45) 100%);
 }
 
 .pr-item:hover::before {
@@ -263,20 +277,19 @@ body::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 600;
   position: relative;
   cursor: help;
   transition: all 0.3s ease;
-  background: linear-gradient(135deg, 
-              rgba(51, 65, 85, 0.8) 0%, 
-              rgba(71, 85, 105, 0.6) 100%);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset,
+              0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  pointer-events: auto;
 }
 
 /* PR State Classes */
@@ -330,73 +343,43 @@ body::before {
 
 /* Status Indicator Colors */
 .ci-success {
-  color: var(--success-color);
-  border-color: rgba(34, 197, 94, 0.4);
-  background: linear-gradient(135deg, 
-              rgba(34, 197, 94, 0.2) 0%, 
-              rgba(22, 163, 74, 0.1) 100%);
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: #ffffff;
 }
 
 .ci-failure {
-  color: var(--error-color);
-  border-color: rgba(239, 68, 68, 0.4);
-  background: linear-gradient(135deg, 
-              rgba(239, 68, 68, 0.2) 0%, 
-              rgba(220, 38, 38, 0.1) 100%);
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+  color: #ffffff;
 }
 
 .ci-pending {
-  color: var(--warning-color);
-  border-color: rgba(250, 204, 21, 0.4);
-  background: linear-gradient(135deg, 
-              rgba(250, 204, 21, 0.2) 0%, 
-              rgba(245, 158, 11, 0.1) 100%);
-  box-shadow: 0 0 8px rgba(250, 204, 21, 0.3);
+  background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+  color: #000000;
 }
 
 .ci-unknown {
-  color: var(--text-secondary);
-  border-color: rgba(100, 116, 139, 0.4);
-  background: linear-gradient(135deg, 
-              rgba(100, 116, 139, 0.2) 0%, 
-              rgba(71, 85, 105, 0.1) 100%);
+  background: linear-gradient(135deg, #6c757d 0%, #adb5bd 100%);
+  color: #ffffff;
 }
 
 .review-approved {
-  color: var(--success-color);
-  border-color: rgba(34, 197, 94, 0.4);
-  background: linear-gradient(135deg, 
-              rgba(34, 197, 94, 0.2) 0%, 
-              rgba(22, 163, 74, 0.1) 100%);
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: #ffffff;
 }
 
 .review-changes_requested {
-  color: var(--error-color);
-  border-color: rgba(239, 68, 68, 0.4);
-  background: linear-gradient(135deg, 
-              rgba(239, 68, 68, 0.2) 0%, 
-              rgba(220, 38, 38, 0.1) 100%);
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+  color: #ffffff;
 }
 
 .review-pending {
-  color: var(--warning-color);
-  border-color: rgba(250, 204, 21, 0.4);
-  background: linear-gradient(135deg, 
-              rgba(250, 204, 21, 0.2) 0%, 
-              rgba(245, 158, 11, 0.1) 100%);
-  box-shadow: 0 0 8px rgba(250, 204, 21, 0.3);
+  background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+  color: #ffffff;
 }
 
 .review-unknown {
-  color: var(--text-secondary);
-  border-color: rgba(100, 116, 139, 0.4);
-  background: linear-gradient(135deg, 
-              rgba(100, 116, 139, 0.2) 0%, 
-              rgba(71, 85, 105, 0.1) 100%);
+  background: linear-gradient(135deg, #6c757d 0%, #adb5bd 100%);
+  color: #ffffff;
 }
 
 .graphite-btn {
@@ -759,4 +742,28 @@ body::before {
 .settings-footer {
   display: flex;
   justify-content: center;
+}
+
+/* Custom tooltip styles */
+.tooltip {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tooltip.show {
+  opacity: 1;
+  transform: translateY(0);
 }

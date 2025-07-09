@@ -80,7 +80,7 @@ class PRRenderer {
       </div>
       <div class="flex justify-between items-center text-xs text-[var(--text-secondary)] ml-9">
         <span class="font-medium opacity-90 whitespace-nowrap overflow-hidden text-ellipsis flex-1 mr-3">${this.escapeHtml(repoName)}</span>
-        <span class="pr-state-${state} text-[9px] font-semibold py-1 px-2 rounded-xl uppercase tracking-[0.3px] whitespace-nowrap flex-shrink-0 border border-transparent transition-all duration-300 backdrop-blur-sm">${stateDisplay}</span>
+        <span class="pr-state-${state} text-[9px] font-semibold rounded-xl uppercase tracking-[0.3px] whitespace-nowrap flex-shrink-0 border border-transparent transition-all duration-300 backdrop-blur-sm" style="padding: 3px 8px;">${stateDisplay}</span>
       </div>
     `;
     
@@ -88,6 +88,12 @@ class PRRenderer {
     if (!isPreview) {
       prItem.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
+        
+        // Don't handle clicks on status indicators to allow tooltips
+        if (target.classList.contains('status-indicator')) {
+          return;
+        }
+        
         const graphiteBtn = target.closest('.graphite-btn') as HTMLElement;
         
         if (graphiteBtn) {
