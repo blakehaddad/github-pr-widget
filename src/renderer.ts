@@ -5,6 +5,7 @@ const path = require('path');
 
 interface PullRequest {
   id: number;
+  number: number; // PR number (different from id)
   title: string;
   html_url: string;
   repository_url: string;
@@ -16,6 +17,9 @@ interface PullRequest {
     login: string;
     avatar_url: string;
   };
+  // Status indicators (will be populated separately)
+  ci_status?: 'success' | 'failure' | 'pending' | 'unknown';
+  review_status?: 'approved' | 'changes_requested' | 'pending' | 'unknown';
 }
 
 interface GitHubResponse {
@@ -114,13 +118,142 @@ class GitHubPRWidget {
       }
 
       const data: GitHubResponse = await response.json();
-      this.renderPullRequests(data.items);
+      
+      // Fetch additional status data for each PR
+      const pullRequestsWithStatus = await Promise.all(
+        data.items.map(async (pr) => {
+          const [ci_status, review_status] = await Promise.all([
+            this.fetchCIStatus(pr),
+            this.fetchReviewStatus(pr)
+          ]);
+          return { ...pr, ci_status, review_status };
+        })
+      );
+      
+      this.renderPullRequests(pullRequestsWithStatus);
       
     } catch (error) {
       console.error('Error fetching pull requests:', error);
       this.showError(error instanceof Error ? error.message : 'Unknown error occurred');
     } finally {
       this.setLoading(false);
+    }
+  }
+
+  private async fetchCIStatus(pr: PullRequest): Promise<'success' | 'failure' | 'pending' | 'unknown'> {
+    try {
+      // Extract owner and repo from repository_url
+      const urlParts = pr.repository_url.split('/');
+      const owner = urlParts[urlParts.length - 2];
+      const repo = urlParts[urlParts.length - 1];
+      
+      // First get the PR details to get the head commit SHA
+      const prResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pr.number}`, {
+        headers: {
+          'Authorization': `token ${this.githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'GitHub-PR-Widget'
+        }
+      });
+
+      if (!prResponse.ok) {
+        return 'unknown';
+      }
+
+      const prData = await prResponse.json();
+      const headSha = prData.head.sha;
+      
+      // Fetch check runs for the head commit
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits/${headSha}/check-runs`, {
+        headers: {
+          'Authorization': `token ${this.githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'GitHub-PR-Widget'
+        }
+      });
+
+      if (!response.ok) {
+        return 'unknown';
+      }
+
+      const data = await response.json();
+      const checkRuns = data.check_runs || [];
+      
+      if (checkRuns.length === 0) {
+        return 'unknown';
+      }
+      
+      // Check if any runs failed
+      const hasFailure = checkRuns.some((run: any) => run.conclusion === 'failure');
+      if (hasFailure) {
+        return 'failure';
+      }
+      
+      // Check if all runs completed successfully
+      const allSuccess = checkRuns.every((run: any) => run.conclusion === 'success');
+      if (allSuccess) {
+        return 'success';
+      }
+      
+      // Otherwise, some are still pending
+      return 'pending';
+    } catch (error) {
+      console.error('Error fetching CI status:', error);
+      return 'unknown';
+    }
+  }
+
+  private async fetchReviewStatus(pr: PullRequest): Promise<'approved' | 'changes_requested' | 'pending' | 'unknown'> {
+    try {
+      // Extract owner and repo from repository_url
+      const urlParts = pr.repository_url.split('/');
+      const owner = urlParts[urlParts.length - 2];
+      const repo = urlParts[urlParts.length - 1];
+      
+      // Fetch reviews for this PR
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pr.number}/reviews`, {
+        headers: {
+          'Authorization': `token ${this.githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'GitHub-PR-Widget'
+        }
+      });
+
+      if (!response.ok) {
+        return 'unknown';
+      }
+
+      const reviews = await response.json();
+      
+      if (reviews.length === 0) {
+        return 'pending';
+      }
+      
+      // Get the latest review from each reviewer
+      const latestReviews = new Map();
+      reviews.forEach((review: any) => {
+        if (review.user.login !== pr.user.login) { // Exclude author's own reviews
+          latestReviews.set(review.user.login, review);
+        }
+      });
+      
+      const reviewStates = Array.from(latestReviews.values()).map((review: any) => review.state);
+      
+      // Check if any reviewer requested changes
+      if (reviewStates.includes('CHANGES_REQUESTED')) {
+        return 'changes_requested';
+      }
+      
+      // Check if at least one reviewer approved
+      if (reviewStates.includes('APPROVED')) {
+        return 'approved';
+      }
+      
+      // Otherwise, still pending
+      return 'pending';
+    } catch (error) {
+      console.error('Error fetching review status:', error);
+      return 'unknown';
     }
   }
 
@@ -158,6 +291,10 @@ class GitHubPRWidget {
           <div class="pr-title">
             <a href="${pr.html_url}" target="_blank" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(truncatedTitle)}</a>
           </div>
+          <div class="pr-status-indicators">
+            ${this.renderStatusIndicator('ci', pr.ci_status)}
+            ${this.renderStatusIndicator('review', pr.review_status)}
+          </div>
         </div>
         <div class="pr-meta">
           <span class="pr-repo">${this.escapeHtml(repoName)}</span>
@@ -175,6 +312,48 @@ class GitHubPRWidget {
 
     this.container.innerHTML = '';
     this.container.appendChild(prList);
+  }
+
+  private renderStatusIndicator(type: 'ci' | 'review', status?: string): string {
+    if (!status) return '';
+    
+    const icons = {
+      ci: {
+        success: '✓',
+        failure: '✗',
+        pending: '⏳',
+        unknown: '?'
+      },
+      review: {
+        approved: '✓',
+        changes_requested: '✗',
+        pending: '⏳',
+        unknown: '?'
+      }
+    };
+    
+    const icon = icons[type][status as keyof typeof icons[typeof type]] || '?';
+    const className = `status-indicator ${type}-${status}`;
+    
+    // Enhanced tooltips with clear descriptions
+    const tooltips = {
+      ci: {
+        success: 'CI Checks: Passed ✓',
+        failure: 'CI Checks: Fail ✗',
+        pending: 'CI Checks: Running ⏳',
+        unknown: 'CI Checks: Unknown ?'
+      },
+      review: {
+        approved: 'Code Review: Approved by reviewer(s) ✓',
+        changes_requested: 'Code Review: Changes requested ✗',
+        pending: 'Code Review: Waiting for review ⏳',
+        unknown: 'Code Review: No review activity ?'
+      }
+    };
+    
+    const title = tooltips[type][status as keyof typeof tooltips[typeof type]] || 'Status unknown';
+    
+    return `<span class="${className}" data-tooltip="${title}">${icon}</span>`;
   }
 
   private setLoading(isLoading: boolean): void {
