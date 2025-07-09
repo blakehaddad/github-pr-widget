@@ -223,7 +223,7 @@ Enable developer tools with **F12** or **Cmd+Option+I** to inspect logs and debu
 
 ## 📄 License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the ISC License. See the [LICENSE](LICENSE) file for details.
 
 ## 🤝 Contributing
 
