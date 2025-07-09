@@ -181,6 +181,14 @@ ipcMain.handle('open-settings', () => {
   createSettingsWindow();
 });
 
+ipcMain.handle('resize-window', (_, height: number) => {
+  if (mainWindow) {
+    const currentSize = mainWindow.getSize();
+    const currentWidth = currentSize[0];
+    mainWindow.setSize(currentWidth, height, true); // true = animate the resize
+  }
+});
+
 app.whenReady().then(() => {
   createWindow();
   createMenu();

@@ -30,6 +30,7 @@ class GitHubPRWidget {
   private loading: HTMLElement;
   private settingsBtn: HTMLButtonElement;
   private refreshBtn: HTMLButtonElement;
+  private resizeZone: HTMLElement;
   private refreshInterval: NodeJS.Timeout | null = null;
   private githubToken: string = '';
   private githubProvider: GithubProvider;
@@ -40,6 +41,7 @@ class GitHubPRWidget {
     this.loading = document.getElementById('loading')!;
     this.settingsBtn = document.getElementById('settingsBtn') as HTMLButtonElement;
     this.refreshBtn = document.getElementById('refreshBtn') as HTMLButtonElement;
+    this.resizeZone = document.getElementById('resizeZone')!;
     this.githubProvider = new GithubProvider('');
 
     this.init();
@@ -67,6 +69,11 @@ class GitHubPRWidget {
 
     this.refreshBtn.addEventListener('click', () => {
       this.fetchPullRequests();
+    });
+
+    // Add double-click event for auto-fit height
+    this.resizeZone.addEventListener('dblclick', () => {
+      this.autoFitHeight();
     });
     
     // Listen for token updates
@@ -268,6 +275,38 @@ class GitHubPRWidget {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  private autoFitHeight(): void {
+    const headerHeight = 41; // Height of header bar
+    const resizeZoneHeight = 15; // Height of resize zone
+    const containerPadding = 40; // Padding in container
+    const prItemHeight = 58; // Height of each PR item (including gap)
+    const emptyStateHeight = 180; // Height when no PRs
+    const loadingHeight = 140; // Height when loading
+    
+    let contentHeight: number;
+    
+    if (this.currentPRs.length === 0) {
+      // Empty state or loading
+      contentHeight = this.loading.style.display !== 'none' ? loadingHeight : emptyStateHeight;
+    } else {
+      // Calculate based on PR count with extra padding
+      contentHeight = (this.currentPRs.length * prItemHeight) + containerPadding;
+    }
+    
+    const totalHeight = headerHeight + contentHeight + resizeZoneHeight;
+    
+    // Add extra buffer to make window slightly taller
+    const bufferHeight = 15;
+    
+    // Set reasonable min/max bounds
+    const minHeight = 220;
+    const maxHeight = Math.floor(window.screen.availHeight * 0.8); // 80% of screen height
+    const finalHeight = Math.max(minHeight, Math.min(totalHeight + bufferHeight, maxHeight));
+    
+    // Send resize request to main process
+    rendererIpc.invoke('resize-window', finalHeight);
   }
 
   public destroy(): void {
