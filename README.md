@@ -99,16 +99,16 @@ A sleek, floating Electron app that displays your GitHub pull requests with real
 
 4. **Install the built app**:
    ```bash
-   # The built .dmg file will be in the dist/ folder
+   # The built .dmg file will be in the dist-electron/ folder
    # Double-click the .dmg file and drag to Applications
-   open dist/GitHub\ PR\ Widget-*.dmg
+   open dist-electron/GitHub\ PR\ Widget-*.dmg
    ```
 
 ### Build Output Locations
 - **Development build**: `dist/` folder (JavaScript files)
-- **App bundle**: `dist/mac/GitHub PR Widget.app`
-- **Installer**: `dist/GitHub PR Widget-*.dmg`
-- **Unpacked app**: `dist/mac-unpacked/`
+- **App bundle**: `dist-electron/mac/GitHub PR Widget.app`
+- **Installer**: `dist-electron/GitHub PR Widget-*.dmg`
+- **Unpacked app**: `dist-electron/mac-unpacked/`
 
 ## 🎮 Usage
 
