@@ -1,5 +1,7 @@
 // GitHub Personal Access Token - reads from stored settings
 const { ipcRenderer: rendererIpc } = require('electron');
+const fs = require('fs');
+const path = require('path');
 
 interface PullRequest {
   id: number;
@@ -37,7 +39,22 @@ class GitHubPRWidget {
     this.init();
   }
 
+  private loadRefreshIcon(): void {
+    try {
+      const iconPath = path.join(__dirname, '../src/assets/icons/refresh.svg');
+      const iconSvg = fs.readFileSync(iconPath, 'utf8');
+      this.refreshBtn.innerHTML = iconSvg;
+    } catch (error) {
+      console.error('Error loading refresh icon:', error);
+      // Fallback to text if icon loading fails
+      this.refreshBtn.innerHTML = '🔄';
+    }
+  }
+
   private async init(): Promise<void> {
+    // Load refresh icon
+    this.loadRefreshIcon();
+    
     this.settingsBtn.addEventListener('click', () => {
       rendererIpc.invoke('open-settings');
     });
