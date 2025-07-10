@@ -49,7 +49,7 @@ class PRRenderer {
   }
 
   private static renderGraphiteButton(graphiteUrl: string): string {
-    return `<button class="graphite-btn" data-graphite-url="${graphiteUrl}" data-tooltip="View in Graphite 📚">📚</button>`;
+    return `<span class="status-indicator graphite-indicator" data-graphite-url="${graphiteUrl}" data-tooltip="View in Graphite 📚">📚</span>`;
   }
 
   public static renderPRItem(pr: PullRequest, isPreview: boolean = false): HTMLElement {
@@ -89,25 +89,24 @@ class PRRenderer {
       prItem.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
         
-        // Don't handle clicks on status indicators to allow tooltips
-        if (target.classList.contains('status-indicator')) {
-          return;
-        }
-        
-        const graphiteBtn = target.closest('.graphite-btn') as HTMLElement;
-        
-        if (graphiteBtn) {
-          // Handle Graphite button click
-          const graphiteUrl = graphiteBtn.getAttribute('data-graphite-url');
+        // Handle Graphite indicator click
+        if (target.classList.contains('graphite-indicator')) {
+          const graphiteUrl = target.getAttribute('data-graphite-url');
           if (graphiteUrl) {
             const { ipcRenderer } = require('electron');
             ipcRenderer.invoke('open-external', graphiteUrl);
           }
-        } else {
-          // Handle regular PR click
-          const { ipcRenderer } = require('electron');
-          ipcRenderer.invoke('open-external', pr.html_url);
+          return;
         }
+        
+        // Don't handle clicks on other status indicators to allow tooltips
+        if (target.classList.contains('status-indicator')) {
+          return;
+        }
+        
+        // Handle regular PR click
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.invoke('open-external', pr.html_url);
       });
     }
 

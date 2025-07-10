@@ -457,10 +457,10 @@ class GitHubPRWidget {
       }
     }, true);
 
-    // Also handle graphite button tooltips
+    // Also handle graphite indicator tooltips
     this.container.addEventListener('mouseenter', (e) => {
       const target = e.target as HTMLElement;
-      if (target.classList.contains('graphite-btn')) {
+      if (target.classList.contains('graphite-indicator')) {
         const tooltipText = target.getAttribute('data-tooltip');
         if (tooltipText) {
           this.showTooltip(target, tooltipText);
@@ -470,7 +470,7 @@ class GitHubPRWidget {
 
     this.container.addEventListener('mouseleave', (e) => {
       const target = e.target as HTMLElement;
-      if (target.classList.contains('graphite-btn')) {
+      if (target.classList.contains('graphite-indicator')) {
         this.hideTooltip();
       }
     }, true);
