@@ -168,6 +168,7 @@ class GitHubPRWidget {
   private githubProvider: GithubProvider;
   private currentPRs: PullRequest[] = [];
   private themeManager: ThemeManager;
+  private tooltip: HTMLElement | null = null;
 
   constructor() {
     this.container = document.getElementById('container')!;
@@ -236,8 +237,14 @@ class GitHubPRWidget {
       this.themeManager.injectThemeVariables();
     });
     
+    // Setup custom tooltips
+    this.setupTooltipHandlers();
+    
     // Initial load
     await this.loadTokenAndFetch();
+    
+    // Initial auto-fit height
+    setTimeout(() => this.autoFitHeight(), 200);
     
     // Set up auto-refresh every 30 seconds
     this.refreshInterval = setInterval(() => {
@@ -306,19 +313,28 @@ class GitHubPRWidget {
           <div class="empty-state-message">You don't have any open pull requests at the moment.</div>
         </div>
       `;
+      // Auto-fit height for empty state
+      setTimeout(() => this.autoFitHeight(), 100);
       return;
     }
 
     const prList = document.createElement('div');
     prList.className = 'pr-list';
 
-    pullRequests.forEach(pr => {
+    pullRequests.forEach((pr, index) => {
       const prItem = PRRenderer.renderPRItem(pr, false);
+      // Add animation delay classes for staggered animation
+      if (index < 5) {
+        prItem.classList.add(`animate-delay-${Math.min(index * 100, 400)}`);
+      }
       prList.appendChild(prItem);
     });
 
     this.container.innerHTML = '';
     this.container.appendChild(prList);
+    
+    // Auto-fit height after rendering PRs
+    setTimeout(() => this.autoFitHeight(), 100);
   }
 
 
@@ -333,7 +349,9 @@ class GitHubPRWidget {
   }
 
   private showError(message: string): void {
-    this.container.innerHTML = `<div class="error">${this.escapeHtml(message)}</div>`;
+    this.container.innerHTML = `<div class="error-state">${this.escapeHtml(message)}</div>`;
+    // Auto-fit height for error state
+    setTimeout(() => this.autoFitHeight(), 100);
   }
 
   private escapeHtml(text: string): string {
@@ -343,30 +361,128 @@ class GitHubPRWidget {
   }
 
   private autoFitHeight(): void {
-    let contentHeight: number;
+    // Wait for DOM to be fully rendered
+    requestAnimationFrame(() => {
+      const container = this.container;
+      let contentHeight: number;
+      
+      if (this.currentPRs.length === 0) {
+        // For empty state or loading, use actual element height
+        const childElement = container.firstElementChild as HTMLElement;
+        if (childElement) {
+          contentHeight = childElement.offsetHeight + 40; // 40px for padding
+        } else {
+          contentHeight = this.loading.style.display !== 'none' ? DESIGN_TOKENS.loadingHeight : DESIGN_TOKENS.emptyStateHeight;
+        }
+      } else {
+        // Calculate based on actual PR list height
+        const prList = container.querySelector('.pr-list') as HTMLElement;
+        if (prList) {
+          contentHeight = prList.offsetHeight + 14; // 14px for container padding (2px top + 12px bottom)
+        } else {
+          // Fallback to calculated height
+          const gapHeight = Math.max(0, (this.currentPRs.length - 1) * DESIGN_TOKENS.prListGap);
+          contentHeight = (this.currentPRs.length * DESIGN_TOKENS.prItemHeight) + gapHeight + 14;
+        }
+      }
+      
+      const totalHeight = DESIGN_TOKENS.headerHeight + contentHeight + DESIGN_TOKENS.resizeZoneHeight;
+      
+      // Set reasonable min/max bounds
+      const maxHeight = Math.floor(window.screen.availHeight * 0.8); // 80% of screen height
+      const finalHeight = Math.max(DESIGN_TOKENS.minWindowHeight, Math.min(totalHeight + DESIGN_TOKENS.bufferHeight, maxHeight));
+      
+      // Send resize request to main process
+      rendererIpc.invoke('resize-window', finalHeight);
+    });
+  }
+
+  private createTooltip(): void {
+    if (!this.tooltip) {
+      this.tooltip = document.createElement('div');
+      this.tooltip.className = 'tooltip';
+      document.body.appendChild(this.tooltip);
+    }
+  }
+
+  private showTooltip(element: HTMLElement, text: string): void {
+    this.createTooltip();
+    if (!this.tooltip) return;
+
+    this.tooltip.textContent = text;
+    this.tooltip.classList.add('show');
+
+    const rect = element.getBoundingClientRect();
+    const tooltipRect = this.tooltip.getBoundingClientRect();
     
-    if (this.currentPRs.length === 0) {
-      // Empty state or loading
-      contentHeight = this.loading.style.display !== 'none' ? DESIGN_TOKENS.loadingHeight : DESIGN_TOKENS.emptyStateHeight;
-    } else {
-      // Calculate based on PR count: items + gaps between items + padding
-      const gapHeight = Math.max(0, (this.currentPRs.length - 1) * DESIGN_TOKENS.prListGap);
-      contentHeight = (this.currentPRs.length * DESIGN_TOKENS.prItemHeight) + gapHeight + DESIGN_TOKENS.containerPadding;
+    // Position tooltip above the element, centered
+    let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+    let top = rect.top - tooltipRect.height - 8;
+    
+    // Keep tooltip within viewport bounds
+    if (left < 8) left = 8;
+    if (left + tooltipRect.width > window.innerWidth - 8) {
+      left = window.innerWidth - tooltipRect.width - 8;
+    }
+    if (top < 8) {
+      top = rect.bottom + 8; // Show below if not enough space above
     }
     
-    const totalHeight = DESIGN_TOKENS.headerHeight + contentHeight + DESIGN_TOKENS.resizeZoneHeight;
-    
-    // Set reasonable min/max bounds
-    const maxHeight = Math.floor(window.screen.availHeight * 0.8); // 80% of screen height
-    const finalHeight = Math.max(DESIGN_TOKENS.minWindowHeight, Math.min(totalHeight + DESIGN_TOKENS.bufferHeight, maxHeight));
-    
-    // Send resize request to main process
-    rendererIpc.invoke('resize-window', finalHeight);
+    this.tooltip.style.left = `${left}px`;
+    this.tooltip.style.top = `${top}px`;
+  }
+
+  private hideTooltip(): void {
+    if (this.tooltip) {
+      this.tooltip.classList.remove('show');
+    }
+  }
+
+  private setupTooltipHandlers(): void {
+    // Use event delegation for status indicators
+    this.container.addEventListener('mouseenter', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('status-indicator')) {
+        const tooltipText = target.getAttribute('data-tooltip');
+        if (tooltipText) {
+          this.showTooltip(target, tooltipText);
+        }
+      }
+    }, true);
+
+    this.container.addEventListener('mouseleave', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('status-indicator')) {
+        this.hideTooltip();
+      }
+    }, true);
+
+    // Also handle graphite indicator tooltips
+    this.container.addEventListener('mouseenter', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('graphite-indicator')) {
+        const tooltipText = target.getAttribute('data-tooltip');
+        if (tooltipText) {
+          this.showTooltip(target, tooltipText);
+        }
+      }
+    }, true);
+
+    this.container.addEventListener('mouseleave', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('graphite-indicator')) {
+        this.hideTooltip();
+      }
+    }, true);
   }
 
   public destroy(): void {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
+    }
+    if (this.tooltip) {
+      this.tooltip.remove();
+      this.tooltip = null;
     }
   }
 }
