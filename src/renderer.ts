@@ -294,8 +294,8 @@ class GitHubPRWidget {
     // Initial load
     await this.loadTokenAndFetch();
     
-    // Initial auto-fit height
-    setTimeout(() => this.autoFitHeight(), 200);
+    // Initial auto-fit height - always resize to optimal size on app open
+    setTimeout(() => this.manualAutoFitHeight(), 200);
     
     // Set up auto-refresh every 30 seconds
     this.refreshInterval = setInterval(() => {
@@ -364,8 +364,8 @@ class GitHubPRWidget {
           <div class="empty-state-message">You don't have any open pull requests at the moment.</div>
         </div>
       `;
-      // Auto-fit height for empty state
-      setTimeout(() => this.autoFitHeight(), 100);
+      // Auto-fit height for empty state - always resize to optimal on initial load
+      setTimeout(() => this.manualAutoFitHeight(), 100);
       return;
     }
 
@@ -385,8 +385,8 @@ class GitHubPRWidget {
     this.container.innerHTML = '';
     this.container.appendChild(prList);
     
-    // Auto-fit height after rendering PRs
-    setTimeout(() => this.autoFitHeight(), 100);
+    // Auto-fit height after rendering PRs - always resize to optimal on initial load
+    setTimeout(() => this.manualAutoFitHeight(), 100);
   }
 
   private handleToggleMinimize(prId: number): void {
