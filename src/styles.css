@@ -219,7 +219,6 @@ body::before {
               rgba(100, 116, 139, 0.35) 100%);
   backdrop-filter: blur(8px) saturate(120%);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: visible;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset,
               0 4px 16px rgba(0, 0, 0, 0.2),
               0 8px 32px rgba(0, 0, 0, 0.1);
@@ -277,8 +276,6 @@ body::before {
 /* Minimized PR Item Styles */
 .pr-item.minimized {
   padding: 4px 12px;
-  min-height: var(--pr-item-minimized-height);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
 
@@ -290,17 +287,7 @@ body::before {
               0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
-.pr-item.minimized .pr-content {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 100%;
-}
-
-.pr-item.minimized .pr-title-container {
-  flex: 1;
-  min-width: 0;
-}
+/* Tailwind handles the grid animations automatically */
 
 .pr-title {
   overflow: hidden;
