@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* Override Tailwind base border styles for minimize button */
+.minimize-toggle,
+.minimize-toggle *,
+.minimize-toggle::before,
+.minimize-toggle::after {
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 /* Custom CSS variables for theme system */
 :root {
   --header-height: 41px;
@@ -307,39 +320,62 @@ body::before {
 }
 
 .minimize-toggle {
+  position: absolute;
+  top: -8px;
+  left: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 12px;
-  height: 12px;
-  background: none;
-  border: none;
+  width: 16px;
+  height: 16px;
+  background: transparent;
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-radius: 0;
   color: var(--text-secondary);
-  font-size: 9px;
+  font-size: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  padding: 0;
-  opacity: 0.6;
-}
-
-/* Different margins for expanded vs minimized state */
-.pr-item:not(.minimized) .minimize-toggle {
-  margin-right: 2px;
-}
-
-.pr-item.minimized .minimize-toggle {
-  margin-right: 2px;
+  padding: 0 !important;
+  margin: 0 !important;
+  opacity: 0.7;
+  z-index: 10;
+  backdrop-filter: none;
+  box-shadow: none !important;
+  outline: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
 }
 
 .minimize-toggle:hover {
   color: var(--text-primary);
   opacity: 1;
   transform: scale(1.1);
+  background: transparent;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.minimize-toggle:focus {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.minimize-toggle.minimized {
+  background: transparent;
+  color: var(--primary-color);
 }
 
 .minimize-toggle.minimized:hover {
   color: var(--primary-color);
+  background: transparent;
+  opacity: 1;
+  transform: scale(1.1);
 }
 
 .status-indicator {
