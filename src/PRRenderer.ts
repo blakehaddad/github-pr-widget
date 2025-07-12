@@ -66,23 +66,20 @@ class PRRenderer {
       ? `<span class="pr-title" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</span>`
       : `<a href="${pr.html_url}" target="_blank" class="pr-title text-[var(--text-primary)] no-underline transition-all duration-300 hover:text-[var(--primary-color)] hover:text-shadow-[0_0_12px_var(--primary-color)]" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</a>`;
     
-    const minimizeToggle = !isPreview && onToggleMinimize 
-      ? `<button class="minimize-toggle${isMinimized ? ' minimized' : ''}" data-pr-id="${pr.id}" data-tooltip="${isMinimized ? 'Expand' : 'Minimize'}" aria-label="${isMinimized ? 'Expand' : 'Minimize'}">${isMinimized ? '▶' : '▼'}</button>`
-      : '';
-
     if (isMinimized) {
+      // For minimized items, use plain text instead of link to prevent navigation
+      const minimizedTitleElement = `<span class="pr-title" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</span>`;
+      
       prItem.innerHTML = `
         <div class="pr-content">
-          ${minimizeToggle}
           <div class="pr-title-container">
-            ${titleElement}
+            ${minimizedTitleElement}
           </div>
         </div>
       `;
     } else {
       prItem.innerHTML = `
         <div class="flex items-center gap-2 mb-2">
-          ${minimizeToggle}
           <img class="w-6 h-6 rounded-full border-2 border-white/10 bg-[var(--bg-secondary)] flex-shrink-0 shadow-[0_1px_0_rgba(255,255,255,0.1)_inset,0_2px_8px_rgba(0,0,0,0.3)]" src="${pr.user.avatar_url}" alt="${pr.user.login}" onerror="this.style.display='none'">
           <div class="flex-1 text-sm font-medium text-[var(--text-primary)] leading-[1.4] min-w-0 text-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
             ${titleElement}
@@ -105,20 +102,6 @@ class PRRenderer {
       prItem.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
         
-        // Handle minimize toggle click
-        if (target.classList.contains('minimize-toggle')) {
-          event.stopPropagation();
-          // Hide any visible tooltips
-          const tooltip = document.querySelector('.tooltip.show') as HTMLElement;
-          if (tooltip) {
-            tooltip.classList.remove('show');
-          }
-          if (onToggleMinimize) {
-            onToggleMinimize(pr.id);
-          }
-          return;
-        }
-        
         // Handle Graphite indicator click
         if (target.classList.contains('graphite-indicator')) {
           const graphiteUrl = target.getAttribute('data-graphite-url');
@@ -134,9 +117,17 @@ class PRRenderer {
           return;
         }
         
-        // Handle regular PR click
-        const { ipcRenderer } = require('electron');
-        ipcRenderer.invoke('open-external', pr.html_url);
+        // Handle PR title link click in expanded items
+        if (!isMinimized && target.tagName === 'A' && target.getAttribute('href')) {
+          // Let the link handle navigation
+          return;
+        }
+        
+        // For any other click, toggle minimize state
+        if (onToggleMinimize) {
+          onToggleMinimize(pr.id);
+          return;
+        }
       });
     }
 

@@ -17,7 +17,7 @@ const DESIGN_TOKENS = {
   emptyStateHeight: 180,
   loadingHeight: 140,
   bufferHeight: 15,
-  minWindowHeight: 220
+  minWindowHeight: 100
 } as const;
 
 // Default theme colors

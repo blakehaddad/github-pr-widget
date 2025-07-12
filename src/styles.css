@@ -279,6 +279,15 @@ body::before {
   padding: 4px 12px;
   min-height: var(--pr-item-minimized-height);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.pr-item.minimized:hover {
+  transform: translateY(-1px);
+  border-color: rgba(88, 166, 255, 0.2);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15) inset,
+              0 4px 16px rgba(88, 166, 255, 0.1),
+              0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
 .pr-item.minimized .pr-content {
@@ -306,41 +315,6 @@ body::before {
   line-height: 1.3;
 }
 
-.minimize-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 12px;
-  height: 12px;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 9px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  padding: 0;
-  opacity: 0.6;
-}
-
-/* Different margins for expanded vs minimized state */
-.pr-item:not(.minimized) .minimize-toggle {
-  margin-right: 2px;
-}
-
-.pr-item.minimized .minimize-toggle {
-  margin-right: 2px;
-}
-
-.minimize-toggle:hover {
-  color: var(--text-primary);
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-.minimize-toggle.minimized:hover {
-  color: var(--primary-color);
-}
 
 .status-indicator {
   display: inline-flex;
