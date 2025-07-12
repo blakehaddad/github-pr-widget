@@ -66,36 +66,49 @@ class PRRenderer {
       ? `<span class="pr-title" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</span>`
       : `<a href="${pr.html_url}" target="_blank" class="pr-title text-[var(--text-primary)] no-underline transition-all duration-300 hover:text-[var(--primary-color)] hover:text-shadow-[0_0_12px_var(--primary-color)]" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</a>`;
     
-    if (isMinimized) {
-      // For minimized items, use plain text instead of link to prevent navigation
-      const minimizedTitleElement = `<span class="pr-title" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</span>`;
-      
-      prItem.innerHTML = `
-        <div class="pr-content">
-          <div class="pr-title-container">
-            ${minimizedTitleElement}
-          </div>
-        </div>
-      `;
-    } else {
-      prItem.innerHTML = `
-        <div class="flex items-center gap-2 mb-2">
+    // Use single title element that stays in place
+    const sharedTitleElement = isPreview 
+      ? `<span class="pr-title" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</span>`
+      : `<a href="${pr.html_url}" target="_blank" class="pr-title text-[var(--text-primary)] no-underline transition-all duration-300 hover:text-[var(--primary-color)] hover:text-shadow-[0_0_12px_var(--primary-color)]" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</a>`;
+    
+    // For minimized items, disable link clicks
+    const safeTitleElement = isMinimized && !isPreview
+      ? `<span class="pr-title" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</span>`
+      : sharedTitleElement;
+    
+    // Use improved structure with shared title and slide-in elements
+    prItem.innerHTML = `
+      <div class="flex items-center gap-2 transition-all duration-500 ease-out ${isMinimized ? 'py-1' : 'mb-2'}">
+        <!-- Avatar - slides in from left -->
+        <div class="transition-all duration-400 ease-out overflow-hidden ${isMinimized ? 'w-0 opacity-0 -translate-x-2' : 'w-6 opacity-100 translate-x-0'}">
           <img class="w-6 h-6 rounded-full border-2 border-white/10 bg-[var(--bg-secondary)] flex-shrink-0 shadow-[0_1px_0_rgba(255,255,255,0.1)_inset,0_2px_8px_rgba(0,0,0,0.3)]" src="${pr.user.avatar_url}" alt="${pr.user.login}" onerror="this.style.display='none'">
-          <div class="flex-1 text-sm font-medium text-[var(--text-primary)] leading-[1.4] min-w-0 text-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-            ${titleElement}
-          </div>
+        </div>
+        
+        <!-- Title - always visible -->
+        <div class="flex-1 text-sm font-medium text-[var(--text-primary)] leading-[1.4] min-w-0 text-shadow-[0_1px_2px_rgba(0,0,0,0.5)] ${isMinimized ? 'text-xs' : ''}">
+          ${safeTitleElement}
+        </div>
+        
+        <!-- Status indicators - slide in from right -->
+        <div class="transition-all duration-400 ease-out overflow-hidden ${isMinimized ? 'w-0 opacity-0 translate-x-2' : 'w-auto opacity-100 translate-x-0'}">
           <div class="flex gap-1 items-center flex-shrink-0">
             ${this.renderStatusIndicator('ci', pr.ci_status)}
             ${this.renderStatusIndicator('review', pr.review_status)}
             ${pr.graphite_url && !isPreview ? this.renderGraphiteButton(pr.graphite_url) : ''}
           </div>
         </div>
-        <div class="flex justify-between items-center text-xs text-[var(--text-secondary)] ml-8 mt-3">
-          <span class="font-medium opacity-90 whitespace-nowrap overflow-hidden text-ellipsis flex-1 mr-3">${this.escapeHtml(repoName)}</span>
-          <span class="pr-state-badge pr-state-${state} text-[9px] font-semibold rounded-xl uppercase tracking-[0.3px] whitespace-nowrap flex-shrink-0 border border-transparent transition-all duration-300 backdrop-blur-sm" style="padding: 3px 8px;">${stateDisplay}</span>
+      </div>
+      
+      <!-- Bottom info - slides down -->
+      <div class="grid transition-all duration-500 ease-out ${isMinimized ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'}">
+        <div class="overflow-hidden">
+          <div class="flex justify-between items-center text-xs text-[var(--text-secondary)] ml-8 mt-3 transition-all duration-400 ease-out ${isMinimized ? 'opacity-0 -translate-y-2' : 'opacity-100 translate-y-0'}">
+            <span class="font-medium opacity-90 whitespace-nowrap overflow-hidden text-ellipsis flex-1 mr-3">${this.escapeHtml(repoName)}</span>
+            <span class="pr-state-badge pr-state-${state} text-[9px] font-semibold rounded-xl uppercase tracking-[0.3px] whitespace-nowrap flex-shrink-0 border border-transparent transition-all duration-300 backdrop-blur-sm" style="padding: 3px 8px;">${stateDisplay}</span>
+          </div>
         </div>
-      `;
-    }
+      </div>
+    `;
     
     // Add click handler only for non-preview items
     if (!isPreview) {

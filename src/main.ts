@@ -189,6 +189,14 @@ ipcMain.handle('resize-window', (_, height: number) => {
   }
 });
 
+ipcMain.handle('get-window-height', () => {
+  if (mainWindow) {
+    const currentSize = mainWindow.getSize();
+    return currentSize[1]; // Return current height
+  }
+  return 0;
+});
+
 // Theme management IPC handlers
 ipcMain.handle('get-theme', () => {
   return (store as any).get('theme', null);

@@ -272,9 +272,9 @@ class GitHubPRWidget {
       this.fetchPullRequests();
     });
 
-    // Add double-click event for auto-fit height
+    // Add double-click event for manual auto-fit height
     this.resizeZone.addEventListener('dblclick', () => {
-      this.autoFitHeight();
+      this.manualAutoFitHeight();
     });
     
     // Listen for token updates
@@ -294,8 +294,8 @@ class GitHubPRWidget {
     // Initial load
     await this.loadTokenAndFetch();
     
-    // Initial auto-fit height
-    setTimeout(() => this.autoFitHeight(), 200);
+    // Initial auto-fit height - always resize to optimal size on app open
+    setTimeout(() => this.manualAutoFitHeight(), 200);
     
     // Set up auto-refresh every 30 seconds
     this.refreshInterval = setInterval(() => {
@@ -364,8 +364,8 @@ class GitHubPRWidget {
           <div class="empty-state-message">You don't have any open pull requests at the moment.</div>
         </div>
       `;
-      // Auto-fit height for empty state
-      setTimeout(() => this.autoFitHeight(), 100);
+      // Auto-fit height for empty state - always resize to optimal on initial load
+      setTimeout(() => this.manualAutoFitHeight(), 100);
       return;
     }
 
@@ -385,15 +385,114 @@ class GitHubPRWidget {
     this.container.innerHTML = '';
     this.container.appendChild(prList);
     
-    // Auto-fit height after rendering PRs
-    setTimeout(() => this.autoFitHeight(), 100);
+    // Auto-fit height after rendering PRs - always resize to optimal on initial load
+    setTimeout(() => this.manualAutoFitHeight(), 100);
   }
 
   private handleToggleMinimize(prId: number): void {
     const isNowMinimized = this.minimizeManager.toggleMinimized(prId);
     
-    // Re-render PRs to update the minimize state
-    this.renderPullRequests(this.currentPRs);
+    // Find the specific PR item and update its minimize state without re-rendering everything
+    const prItems = Array.from(this.container.querySelectorAll('.pr-item'));
+    const prData = this.currentPRs.find(pr => pr.id === prId);
+    
+    if (prData) {
+      // Find the PR item by matching the title or other unique identifier
+      for (const item of prItems) {
+        const titleElement = item.querySelector('.pr-title');
+        if (titleElement && titleElement.textContent?.trim() === prData.title) {
+          // Toggle the minimized class
+          if (isNowMinimized) {
+            item.classList.add('minimized');
+          } else {
+            item.classList.remove('minimized');
+          }
+          
+          // Update the main container classes
+          const mainContainer = item.querySelector('.flex');
+          if (mainContainer) {
+            if (isNowMinimized) {
+              mainContainer.className = mainContainer.className.replace('mb-2', 'py-1');
+            } else {
+              mainContainer.className = mainContainer.className.replace('py-1', 'mb-2');
+            }
+          }
+          
+          // Update avatar container
+          const avatarContainer = item.querySelector('.flex .transition-all');
+          if (avatarContainer) {
+            if (isNowMinimized) {
+              avatarContainer.className = avatarContainer.className
+                .replace('w-6 opacity-100 translate-x-0', 'w-0 opacity-0 -translate-x-2');
+            } else {
+              avatarContainer.className = avatarContainer.className
+                .replace('w-0 opacity-0 -translate-x-2', 'w-6 opacity-100 translate-x-0');
+            }
+          }
+          
+          // Update title size
+          const titleContainer = item.querySelector('.flex-1');
+          if (titleContainer) {
+            if (isNowMinimized) {
+              titleContainer.classList.add('text-xs');
+            } else {
+              titleContainer.classList.remove('text-xs');
+            }
+          }
+          
+          // Update status indicators container
+          const statusContainer = item.querySelector('.flex .transition-all:last-child');
+          if (statusContainer) {
+            if (isNowMinimized) {
+              statusContainer.className = statusContainer.className
+                .replace('w-auto opacity-100 translate-x-0', 'w-0 opacity-0 translate-x-2');
+            } else {
+              statusContainer.className = statusContainer.className
+                .replace('w-0 opacity-0 translate-x-2', 'w-auto opacity-100 translate-x-0');
+            }
+          }
+          
+          // Update bottom info grid
+          const gridContainer = item.querySelector('.grid');
+          if (gridContainer) {
+            if (isNowMinimized) {
+              gridContainer.className = gridContainer.className.replace('grid-rows-[1fr]', 'grid-rows-[0fr]');
+            } else {
+              gridContainer.className = gridContainer.className.replace('grid-rows-[0fr]', 'grid-rows-[1fr]');
+            }
+          }
+          
+          // Update bottom info content
+          const bottomInfo = item.querySelector('.grid .flex');
+          if (bottomInfo) {
+            if (isNowMinimized) {
+              bottomInfo.className = bottomInfo.className
+                .replace('opacity-100 translate-y-0', 'opacity-0 -translate-y-2');
+            } else {
+              bottomInfo.className = bottomInfo.className
+                .replace('opacity-0 -translate-y-2', 'opacity-100 translate-y-0');
+            }
+          }
+          
+          // Handle link functionality for minimized state
+          const titleLink = titleElement.tagName === 'A' ? titleElement as HTMLElement : null;
+          if (titleLink) {
+            if (isNowMinimized) {
+              // Disable link in minimized state
+              titleLink.style.pointerEvents = 'none';
+            } else {
+              // Re-enable link in expanded state
+              titleLink.style.pointerEvents = 'auto';
+            }
+          }
+          
+          break;
+        }
+      }
+    }
+    
+    // Update window height if needed (but don't re-render)
+    setTimeout(() => this.autoFitHeight(), 100);
   }
 
 
@@ -419,47 +518,65 @@ class GitHubPRWidget {
     return div.innerHTML;
   }
 
+  private calculateOptimalHeight(): number {
+    const container = this.container;
+    let contentHeight: number;
+    
+    if (this.currentPRs.length === 0) {
+      // For empty state or loading, use actual element height
+      const childElement = container.firstElementChild as HTMLElement;
+      if (childElement) {
+        contentHeight = childElement.offsetHeight + 8; // Minimal padding for empty states
+      } else {
+        contentHeight = this.loading.style.display !== 'none' ? DESIGN_TOKENS.loadingHeight : DESIGN_TOKENS.emptyStateHeight;
+      }
+    } else {
+      // Calculate based on actual PR list height
+      const prList = container.querySelector('.pr-list') as HTMLElement;
+      if (prList) {
+        contentHeight = prList.offsetHeight + 8; // Minimal container padding
+      } else {
+        // Fallback to calculated height - account for minimized items
+        const gapHeight = Math.max(0, (this.currentPRs.length - 1) * DESIGN_TOKENS.prListGap);
+        let totalItemHeight = 0;
+        
+        this.currentPRs.forEach(pr => {
+          const isMinimized = this.minimizeManager.isMinimized(pr.id);
+          totalItemHeight += isMinimized ? DESIGN_TOKENS.prItemMinimizedHeight : DESIGN_TOKENS.prItemHeight;
+        });
+        
+        contentHeight = totalItemHeight + gapHeight + 8;
+      }
+    }
+    
+    const totalHeight = DESIGN_TOKENS.headerHeight + contentHeight + DESIGN_TOKENS.resizeZoneHeight;
+    
+    // Set reasonable min/max bounds
+    const maxHeight = Math.floor(window.screen.availHeight * 0.8); // 80% of screen height
+    return Math.max(DESIGN_TOKENS.minWindowHeight, Math.min(totalHeight, maxHeight));
+  }
+
   private autoFitHeight(): void {
     // Wait for DOM to be fully rendered
     requestAnimationFrame(() => {
-      const container = this.container;
-      let contentHeight: number;
+      const requiredHeight = this.calculateOptimalHeight();
       
-      if (this.currentPRs.length === 0) {
-        // For empty state or loading, use actual element height
-        const childElement = container.firstElementChild as HTMLElement;
-        if (childElement) {
-          contentHeight = childElement.offsetHeight + 8; // Minimal padding for empty states
-        } else {
-          contentHeight = this.loading.style.display !== 'none' ? DESIGN_TOKENS.loadingHeight : DESIGN_TOKENS.emptyStateHeight;
+      // Get current window height
+      rendererIpc.invoke('get-window-height').then((currentHeight: number) => {
+        // Only resize if content requires more space than current window height
+        // This preserves user's manual sizing while ensuring content is always visible
+        if (requiredHeight > currentHeight) {
+          rendererIpc.invoke('resize-window', requiredHeight);
         }
-      } else {
-        // Calculate based on actual PR list height
-        const prList = container.querySelector('.pr-list') as HTMLElement;
-        if (prList) {
-          contentHeight = prList.offsetHeight + 8; // Minimal container padding
-        } else {
-          // Fallback to calculated height - account for minimized items
-          const gapHeight = Math.max(0, (this.currentPRs.length - 1) * DESIGN_TOKENS.prListGap);
-          let totalItemHeight = 0;
-          
-          this.currentPRs.forEach(pr => {
-            const isMinimized = this.minimizeManager.isMinimized(pr.id);
-            totalItemHeight += isMinimized ? DESIGN_TOKENS.prItemMinimizedHeight : DESIGN_TOKENS.prItemHeight;
-          });
-          
-          contentHeight = totalItemHeight + gapHeight + 8;
-        }
-      }
-      
-      const totalHeight = DESIGN_TOKENS.headerHeight + contentHeight + DESIGN_TOKENS.resizeZoneHeight;
-      
-      // Set reasonable min/max bounds
-      const maxHeight = Math.floor(window.screen.availHeight * 0.8); // 80% of screen height
-      const finalHeight = Math.max(DESIGN_TOKENS.minWindowHeight, Math.min(totalHeight, maxHeight));
-      
-      // Send resize request to main process
-      rendererIpc.invoke('resize-window', finalHeight);
+      });
+    });
+  }
+
+  private manualAutoFitHeight(): void {
+    // Always resize to optimal height when manually triggered (double-click)
+    requestAnimationFrame(() => {
+      const optimalHeight = this.calculateOptimalHeight();
+      rendererIpc.invoke('resize-window', optimalHeight);
     });
   }
 
