@@ -10,6 +10,7 @@ const path = require('path');
 const DESIGN_TOKENS = {
   headerHeight: 41,
   prItemHeight: 58,
+  prItemMinimizedHeight: 25,
   prListGap: 8,
   containerPadding: 40,
   resizeZoneHeight: 15,
@@ -85,6 +86,54 @@ interface PullRequest {
   ci_status?: 'success' | 'failure' | 'pending' | 'unknown';
   review_status?: 'approved' | 'changes_requested' | 'pending' | 'unknown';
   graphite_url?: string;
+}
+
+class MinimizeStateManager {
+  private static readonly STORAGE_KEY = 'minimized-prs';
+  private minimizedPRs: Set<number> = new Set();
+
+  constructor() {
+    this.loadMinimizedState();
+  }
+
+  private loadMinimizedState(): void {
+    try {
+      const stored = localStorage.getItem(MinimizeStateManager.STORAGE_KEY);
+      if (stored) {
+        const minimizedArray = JSON.parse(stored) as number[];
+        this.minimizedPRs = new Set(minimizedArray);
+      }
+    } catch (error) {
+      console.error('Error loading minimized state:', error);
+    }
+  }
+
+  private saveMinimizedState(): void {
+    try {
+      const minimizedArray = Array.from(this.minimizedPRs);
+      localStorage.setItem(MinimizeStateManager.STORAGE_KEY, JSON.stringify(minimizedArray));
+    } catch (error) {
+      console.error('Error saving minimized state:', error);
+    }
+  }
+
+  isMinimized(prId: number): boolean {
+    return this.minimizedPRs.has(prId);
+  }
+
+  toggleMinimized(prId: number): boolean {
+    if (this.minimizedPRs.has(prId)) {
+      this.minimizedPRs.delete(prId);
+    } else {
+      this.minimizedPRs.add(prId);
+    }
+    this.saveMinimizedState();
+    return this.minimizedPRs.has(prId);
+  }
+
+  getMinimizedPRs(): number[] {
+    return Array.from(this.minimizedPRs);
+  }
 }
 
 class ThemeManager {
@@ -168,6 +217,7 @@ class GitHubPRWidget {
   private githubProvider: GithubProvider;
   private currentPRs: PullRequest[] = [];
   private themeManager: ThemeManager;
+  private minimizeManager: MinimizeStateManager;
   private tooltip: HTMLElement | null = null;
 
   constructor() {
@@ -178,6 +228,7 @@ class GitHubPRWidget {
     this.resizeZone = document.getElementById('resizeZone')!;
     this.githubProvider = new GithubProvider('');
     this.themeManager = new ThemeManager();
+    this.minimizeManager = new MinimizeStateManager();
 
     this.init();
   }
@@ -322,7 +373,8 @@ class GitHubPRWidget {
     prList.className = 'pr-list';
 
     pullRequests.forEach((pr, index) => {
-      const prItem = PRRenderer.renderPRItem(pr, false);
+      const isMinimized = this.minimizeManager.isMinimized(pr.id);
+      const prItem = PRRenderer.renderPRItem(pr, false, isMinimized, (prId) => this.handleToggleMinimize(prId));
       // Add animation delay classes for staggered animation
       if (index < 5) {
         prItem.classList.add(`animate-delay-${Math.min(index * 100, 400)}`);
@@ -335,6 +387,13 @@ class GitHubPRWidget {
     
     // Auto-fit height after rendering PRs
     setTimeout(() => this.autoFitHeight(), 100);
+  }
+
+  private handleToggleMinimize(prId: number): void {
+    const isNowMinimized = this.minimizeManager.toggleMinimized(prId);
+    
+    // Re-render PRs to update the minimize state
+    this.renderPullRequests(this.currentPRs);
   }
 
 
@@ -380,9 +439,16 @@ class GitHubPRWidget {
         if (prList) {
           contentHeight = prList.offsetHeight + 8; // Minimal container padding
         } else {
-          // Fallback to calculated height
+          // Fallback to calculated height - account for minimized items
           const gapHeight = Math.max(0, (this.currentPRs.length - 1) * DESIGN_TOKENS.prListGap);
-          contentHeight = (this.currentPRs.length * DESIGN_TOKENS.prItemHeight) + gapHeight + 8;
+          let totalItemHeight = 0;
+          
+          this.currentPRs.forEach(pr => {
+            const isMinimized = this.minimizeManager.isMinimized(pr.id);
+            totalItemHeight += isMinimized ? DESIGN_TOKENS.prItemMinimizedHeight : DESIGN_TOKENS.prItemHeight;
+          });
+          
+          contentHeight = totalItemHeight + gapHeight + 8;
         }
       }
       
@@ -471,6 +537,24 @@ class GitHubPRWidget {
     this.container.addEventListener('mouseleave', (e) => {
       const target = e.target as HTMLElement;
       if (target.classList.contains('graphite-indicator')) {
+        this.hideTooltip();
+      }
+    }, true);
+
+    // Also handle minimize toggle tooltips
+    this.container.addEventListener('mouseenter', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('minimize-toggle')) {
+        const tooltipText = target.getAttribute('data-tooltip');
+        if (tooltipText) {
+          this.showTooltip(target, tooltipText);
+        }
+      }
+    }, true);
+
+    this.container.addEventListener('mouseleave', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('minimize-toggle')) {
         this.hideTooltip();
       }
     }, true);

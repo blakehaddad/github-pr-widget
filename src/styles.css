@@ -4,6 +4,7 @@
 :root {
   --header-height: 41px;
   --pr-item-height: 58px;
+  --pr-item-minimized-height: 25px;
   --pr-list-gap: 8px;
   --container-padding-top: 2px;
   --container-padding-bottom: 12px;
@@ -271,6 +272,74 @@ body::before {
 
 .pr-item:hover::after {
   opacity: 1;
+}
+
+/* Minimized PR Item Styles */
+.pr-item.minimized {
+  padding: 4px 12px;
+  min-height: var(--pr-item-minimized-height);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pr-item.minimized .pr-content {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+}
+
+.pr-item.minimized .pr-title-container {
+  flex: 1;
+  min-width: 0;
+}
+
+.pr-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  width: 100%;
+}
+
+.pr-item.minimized .pr-title {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.minimize-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 9px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
+  opacity: 0.6;
+}
+
+/* Different margins for expanded vs minimized state */
+.pr-item:not(.minimized) .minimize-toggle {
+  margin-right: 2px;
+}
+
+.pr-item.minimized .minimize-toggle {
+  margin-right: 2px;
+}
+
+.minimize-toggle:hover {
+  color: var(--text-primary);
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.minimize-toggle.minimized:hover {
+  color: var(--primary-color);
 }
 
 .status-indicator {
