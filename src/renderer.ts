@@ -370,7 +370,7 @@ class GitHubPRWidget {
         // For empty state or loading, use actual element height
         const childElement = container.firstElementChild as HTMLElement;
         if (childElement) {
-          contentHeight = childElement.offsetHeight + 40; // 40px for padding
+          contentHeight = childElement.offsetHeight + 8; // Minimal padding for empty states
         } else {
           contentHeight = this.loading.style.display !== 'none' ? DESIGN_TOKENS.loadingHeight : DESIGN_TOKENS.emptyStateHeight;
         }
@@ -378,11 +378,11 @@ class GitHubPRWidget {
         // Calculate based on actual PR list height
         const prList = container.querySelector('.pr-list') as HTMLElement;
         if (prList) {
-          contentHeight = prList.offsetHeight + 14; // 14px for container padding (2px top + 12px bottom)
+          contentHeight = prList.offsetHeight + 8; // Minimal container padding
         } else {
           // Fallback to calculated height
           const gapHeight = Math.max(0, (this.currentPRs.length - 1) * DESIGN_TOKENS.prListGap);
-          contentHeight = (this.currentPRs.length * DESIGN_TOKENS.prItemHeight) + gapHeight + 14;
+          contentHeight = (this.currentPRs.length * DESIGN_TOKENS.prItemHeight) + gapHeight + 8;
         }
       }
       
@@ -390,7 +390,7 @@ class GitHubPRWidget {
       
       // Set reasonable min/max bounds
       const maxHeight = Math.floor(window.screen.availHeight * 0.8); // 80% of screen height
-      const finalHeight = Math.max(DESIGN_TOKENS.minWindowHeight, Math.min(totalHeight + DESIGN_TOKENS.bufferHeight, maxHeight));
+      const finalHeight = Math.max(DESIGN_TOKENS.minWindowHeight, Math.min(totalHeight, maxHeight));
       
       // Send resize request to main process
       rendererIpc.invoke('resize-window', finalHeight);
