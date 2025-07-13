@@ -474,17 +474,7 @@ class GitHubPRWidget {
             }
           }
           
-          // Handle link functionality for minimized state
-          const titleLink = titleElement.tagName === 'A' ? titleElement as HTMLElement : null;
-          if (titleLink) {
-            if (isNowMinimized) {
-              // Disable link in minimized state
-              titleLink.style.pointerEvents = 'none';
-            } else {
-              // Re-enable link in expanded state
-              titleLink.style.pointerEvents = 'auto';
-            }
-          }
+          // Note: Link functionality is handled in the click event handler in PRRenderer
           
           break;
         }
