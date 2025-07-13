@@ -130,10 +130,27 @@ class PRRenderer {
           return;
         }
         
-        // Handle PR title link click in expanded items
-        if (!isMinimized && target.tagName === 'A' && target.getAttribute('href')) {
-          // Let the link handle navigation
-          return;
+        // Handle PR title link click (only allow in expanded items)
+        if (target.tagName === 'A' && target.getAttribute('href')) {
+          if (!isMinimized) {
+            // Stop event propagation to prevent minimize toggle and let link work
+            event.stopPropagation();
+            // Let the link handle navigation in expanded state
+            return;
+          } else {
+            // Prevent navigation in minimized state, just toggle instead
+            event.preventDefault();
+          }
+        }
+        
+        // Check if click is on the title text (whether link or span)
+        if (target.classList.contains('pr-title')) {
+          if (!isMinimized && target.tagName === 'A') {
+            // This is a link in expanded state - stop propagation and let it navigate
+            event.stopPropagation();
+            return;
+          }
+          // If it's not a link or we're minimized, fall through to toggle
         }
         
         // For any other click, toggle minimize state
