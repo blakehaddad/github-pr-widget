@@ -71,10 +71,8 @@ class PRRenderer {
       ? `<span class="pr-title" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</span>`
       : `<a href="${pr.html_url}" target="_blank" class="pr-title text-[var(--text-primary)] no-underline transition-all duration-300 hover:text-[var(--primary-color)] hover:text-shadow-[0_0_12px_var(--primary-color)]" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</a>`;
     
-    // For minimized items, disable link clicks
-    const safeTitleElement = isMinimized && !isPreview
-      ? `<span class="pr-title" title="${this.escapeHtml(pr.title)}">${this.escapeHtml(pr.title)}</span>`
-      : sharedTitleElement;
+    // Always use links - CSS will handle disabling clicks when minimized
+    const safeTitleElement = sharedTitleElement;
     
     // Use improved structure with shared title and slide-in elements
     prItem.innerHTML = `
@@ -130,9 +128,12 @@ class PRRenderer {
           return;
         }
         
+        // Check current visual state instead of stale isMinimized parameter
+        const currentlyMinimized = prItem.classList.contains('minimized');
+        
         // Handle PR title link click (only allow in expanded items)
         if (target.tagName === 'A' && target.getAttribute('href')) {
-          if (!isMinimized) {
+          if (!currentlyMinimized) {
             // Stop event propagation to prevent minimize toggle and let link work
             event.stopPropagation();
             // Let the link handle navigation in expanded state
@@ -145,7 +146,7 @@ class PRRenderer {
         
         // Check if click is on the title text (whether link or span)
         if (target.classList.contains('pr-title')) {
-          if (!isMinimized && target.tagName === 'A') {
+          if (!currentlyMinimized && target.tagName === 'A') {
             // This is a link in expanded state - stop propagation and let it navigate
             event.stopPropagation();
             return;
