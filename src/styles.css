@@ -300,12 +300,20 @@ body::before {
   pointer-events: auto;
 }
 
+/* Ensure expanded PR titles have highest z-index */
+.pr-item:not(.minimized) .pr-title {
+  z-index: 20;
+  pointer-events: auto;
+}
+
 .pr-item.minimized .pr-title {
   font-size: 12px;
   line-height: 1.3;
   pointer-events: none;
   cursor: default;
 }
+
+/* Status indicators are hidden via JavaScript in minimized state */
 
 
 .status-indicator {

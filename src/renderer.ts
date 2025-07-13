@@ -440,8 +440,10 @@ class GitHubPRWidget {
             }
           }
           
+          // Title element is always a link - CSS handles disabling clicks when minimized
+          
           // Update status indicators container
-          const statusContainer = item.querySelector('.flex .transition-all:last-child');
+          const statusContainer = item.querySelector('.flex > .transition-all:nth-child(3)');
           if (statusContainer) {
             if (isNowMinimized) {
               statusContainer.className = statusContainer.className
@@ -451,6 +453,7 @@ class GitHubPRWidget {
                 .replace('w-0 opacity-0 translate-x-2', 'w-auto opacity-100 translate-x-0');
             }
           }
+          
           
           // Update bottom info grid
           const gridContainer = item.querySelector('.grid');
