@@ -47,6 +47,16 @@ body {
   position: relative;
 }
 
+/* Hide scrollbars globally */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbars for Firefox */
+html {
+  scrollbar-width: none;
+}
+
 body::before {
   content: '';
   position: fixed;
