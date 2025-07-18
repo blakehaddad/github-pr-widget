@@ -71,51 +71,65 @@ class GithubProvider {
       const owner = urlParts[urlParts.length - 2];
       const repo = urlParts[urlParts.length - 1];
       
-      const prResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pr.number}`, {
+      // Use GraphQL to get the current PR status including PR-level checks
+      const graphqlQuery = `
+        query($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) {
+            pullRequest(number: $number) {
+              statusCheckRollup {
+                state
+              }
+            }
+          }
+        }
+      `;
+      
+      const graphqlResponse = await fetch('https://api.github.com/graphql', {
+        method: 'POST',
         headers: {
           'Authorization': `token ${this.githubToken}`,
           'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'GitHub-PR-Widget'
-        }
+          'User-Agent': 'GitHub-PR-Widget',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: graphqlQuery,
+          variables: {
+            owner: owner,
+            repo: repo,
+            number: pr.number
+          }
+        })
       });
 
-      if (!prResponse.ok) {
+      if (!graphqlResponse.ok) {
         return 'unknown';
       }
 
-      const prData = await prResponse.json();
-      const headSha = prData.head.sha;
+      const graphqlData = await graphqlResponse.json();
       
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits/${headSha}/check-runs`, {
-        headers: {
-          'Authorization': `token ${this.githubToken}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'GitHub-PR-Widget'
-        }
-      });
-
-      if (!response.ok) {
-        return 'unknown';
-      }
-
-      const data = await response.json();
-      const checkRuns = data.check_runs || [];
+      // Log the response for debugging
+      console.log(`GraphQL status response for PR #${pr.number}:`, graphqlData);
       
-      if (checkRuns.length === 0) {
+      const rollupState = graphqlData?.data?.repository?.pullRequest?.statusCheckRollup?.state;
+      
+      if (!rollupState) {
         return 'unknown';
       }
       
-      const hasFailure = checkRuns.some((run: any) => run.conclusion === 'failure');
-      if (hasFailure) {
-        return 'failure';
+      // Map GitHub GraphQL states to our simplified status types
+      switch (rollupState) {
+        case 'SUCCESS':
+          return 'success';
+        case 'FAILURE':
+        case 'ERROR':
+          return 'failure';
+        case 'PENDING':
+        case 'EXPECTED':
+          return 'pending';
+        default:
+          return 'unknown';
       }
-      
-      const allSuccess = checkRuns.every((run: any) => run.conclusion === 'success');
-      if (allSuccess) {
-        return 'success';
-      }
-      
-      return 'pending';
     } catch (error) {
       console.error('Error fetching CI status:', error);
       return 'unknown';
