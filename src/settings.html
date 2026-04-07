@@ -5,6 +5,112 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GitHub PR Widget Settings</title>
   <link rel="stylesheet" href="../dist/styles.css">
+  <style>
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+      padding: 4px 8px;
+    }
+
+    .btn-link:hover {
+      color: var(--text-primary);
+    }
+
+    .toggle-icon {
+      transition: transform 0.3s ease;
+      display: inline-block;
+    }
+
+    .advanced-section {
+      max-height: 500px;
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+      opacity: 1;
+    }
+
+    .advanced-section.collapsed {
+      max-height: 0;
+      opacity: 0;
+    }
+
+    .domain-status {
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .domain-status.public {
+      background: rgba(127, 127, 127, 0.1);
+      color: var(--text-secondary);
+    }
+
+    .domain-status.enterprise {
+      background: rgba(56, 139, 253, 0.15);
+      color: #58a6ff;
+      border: 1px solid rgba(56, 139, 253, 0.3);
+    }
+
+    .info-box {
+      background: var(--bg-tertiary, rgba(127, 127, 127, 0.05));
+      border-left: 3px solid var(--primary-color, #58a6ff);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      border-radius: 4px;
+    }
+
+    .info-box p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .form-hint {
+      display: block;
+      margin-top: 4px;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .message {
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    .message.hidden {
+      display: none;
+    }
+
+    .message.error {
+      background: rgba(248, 81, 73, 0.1);
+      color: #f85149;
+      border: 1px solid rgba(248, 81, 73, 0.3);
+    }
+
+    .message.success {
+      background: rgba(63, 185, 80, 0.1);
+      color: #3fb950;
+      border: 1px solid rgba(63, 185, 80, 0.3);
+    }
+  </style>
 </head>
 <body class="settings-body">
   <div class="settings-container">
@@ -12,6 +118,51 @@
     <div class="settings-header">
       <h1 class="settings-title">Settings</h1>
       <button id="closeBtn" class="btn-header close-btn" title="Close">×</button>
+    </div>
+
+    <!-- GitHub Domain Configuration -->
+    <div class="settings-section">
+      <div class="section-header">
+        <h2 class="section-title">GitHub Configuration</h2>
+        <button id="advancedToggle" class="btn-link" type="button">
+          <span class="toggle-text">Advanced</span>
+          <span class="toggle-icon">▼</span>
+        </button>
+      </div>
+
+      <div id="domainStatus" class="domain-status public">
+        Public GitHub (github.com)
+      </div>
+
+      <div id="advancedSection" class="advanced-section collapsed">
+        <div class="info-box">
+          <p>
+            <strong>GitHub Enterprise Users:</strong> Enter your GitHub Enterprise domain below.
+            Most users should leave this as the default (github.com).
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label for="githubDomain" class="form-label">GitHub Domain</label>
+          <input
+            type="text"
+            id="githubDomain"
+            placeholder="github.com or github.example.com"
+            class="form-input"
+          >
+          <small class="form-hint">
+            Enter domain only, without https:// (e.g., github.example.com)
+          </small>
+        </div>
+
+        <div class="form-actions">
+          <button id="saveDomainBtn" class="btn-primary" type="button">
+            Save Domain
+          </button>
+        </div>
+
+        <div id="domainMessage" class="message hidden"></div>
+      </div>
     </div>
 
     <!-- GitHub Token Section -->

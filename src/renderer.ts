@@ -282,6 +282,12 @@ class GitHubPRWidget {
       this.loadTokenAndFetch();
     });
 
+    // Listen for domain updates
+    rendererIpc.on('domain-updated', () => {
+      console.log('Domain updated, refreshing PRs...');
+      this.loadTokenAndFetch();
+    });
+
     // Listen for theme updates
     rendererIpc.on('theme-updated', async () => {
       await this.themeManager.loadTheme();
@@ -306,11 +312,14 @@ class GitHubPRWidget {
   private async loadTokenAndFetch(): Promise<void> {
     try {
       this.githubToken = await rendererIpc.invoke('get-github-token');
+      const githubDomain = await rendererIpc.invoke('get-github-domain') || 'github.com';
+
       if (!this.githubToken) {
         this.showError('No GitHub token configured. Please go to Settings to add your token.');
         return;
       }
       this.githubProvider.setToken(this.githubToken);
+      this.githubProvider.setDomain(githubDomain);
       await this.fetchPullRequests();
     } catch (error) {
       console.error('Error loading token:', error);

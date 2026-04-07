@@ -20,7 +20,10 @@ async function buildCSS() {
       from: inputFile,
       to: outputFile,
     });
-    
+
+    // Ensure output directory exists
+    fs.mkdirSync(path.dirname(outputFile), { recursive: true });
+
     // Write output
     fs.writeFileSync(outputFile, result.css);
     

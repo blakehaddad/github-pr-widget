@@ -21,15 +21,51 @@ interface GitHubResponse {
   items: PullRequest[];
 }
 
+class GitHubUrlBuilder {
+  private domain: string;
+  private isEnterprise: boolean;
+
+  constructor(domain: string = 'github.com') {
+    this.domain = domain;
+    this.isEnterprise = domain !== 'github.com';
+  }
+
+  public getRestApiBase(): string {
+    return this.isEnterprise
+      ? `https://${this.domain}/api/v3`
+      : 'https://api.github.com';
+  }
+
+  public getGraphQLEndpoint(): string {
+    return this.isEnterprise
+      ? `https://${this.domain}/api/graphql`
+      : 'https://api.github.com/graphql';
+  }
+
+  public getWebBase(): string {
+    return `https://${this.domain}`;
+  }
+
+  public getTokenUrl(): string {
+    return `${this.getWebBase()}/settings/tokens`;
+  }
+}
+
 class GithubProvider {
   private githubToken: string = '';
+  private urlBuilder: GitHubUrlBuilder;
 
-  constructor(token: string) {
+  constructor(token: string, domain: string = 'github.com') {
     this.githubToken = token;
+    this.urlBuilder = new GitHubUrlBuilder(domain);
   }
 
   public setToken(token: string): void {
     this.githubToken = token;
+  }
+
+  public setDomain(domain: string): void {
+    this.urlBuilder = new GitHubUrlBuilder(domain);
   }
 
   public async fetchPullRequests(): Promise<PullRequest[]> {
@@ -37,7 +73,7 @@ class GithubProvider {
       throw new Error('No GitHub token configured');
     }
 
-    const response = await fetch('https://api.github.com/search/issues?q=is:pr+is:open+author:@me', {
+    const response = await fetch(`${this.urlBuilder.getRestApiBase()}/search/issues?q=is:pr+is:open+author:@me`, {
       headers: {
         'Authorization': `token ${this.githubToken}`,
         'Accept': 'application/vnd.github.v3+json',
@@ -84,7 +120,7 @@ class GithubProvider {
         }
       `;
       
-      const graphqlResponse = await fetch('https://api.github.com/graphql', {
+      const graphqlResponse = await fetch(this.urlBuilder.getGraphQLEndpoint(), {
         method: 'POST',
         headers: {
           'Authorization': `token ${this.githubToken}`,
@@ -142,7 +178,7 @@ class GithubProvider {
       const owner = urlParts[urlParts.length - 2];
       const repo = urlParts[urlParts.length - 1];
       
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pr.number}/reviews`, {
+      const response = await fetch(`${this.urlBuilder.getRestApiBase()}/repos/${owner}/${repo}/pulls/${pr.number}/reviews`, {
         headers: {
           'Authorization': `token ${this.githubToken}`,
           'Accept': 'application/vnd.github.v3+json',
@@ -190,7 +226,7 @@ class GithubProvider {
       const owner = urlParts[urlParts.length - 2];
       const repo = urlParts[urlParts.length - 1];
       
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${pr.number}/comments`, {
+      const response = await fetch(`${this.urlBuilder.getRestApiBase()}/repos/${owner}/${repo}/issues/${pr.number}/comments`, {
         headers: {
           'Authorization': `token ${this.githubToken}`,
           'Accept': 'application/vnd.github.v3+json',

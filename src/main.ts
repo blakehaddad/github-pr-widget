@@ -135,7 +135,7 @@ const createSettingsWindow = (): void => {
     show: false,
   });
 
-  settingsWindow.loadFile(path.join(__dirname, 'settings.html'));
+  settingsWindow.loadFile(path.join(__dirname, '../src/settings.html'));
 
   settingsWindow.once('ready-to-show', () => {
     settingsWindow?.show();
@@ -164,6 +164,17 @@ ipcMain.handle('set-github-token', (_, token: string) => {
   (store as any).set('githubToken', token);
   // Refresh the main window to use the new token
   mainWindow.webContents.send('token-updated');
+  return true;
+});
+
+ipcMain.handle('get-github-domain', () => {
+  return (store as any).get('githubDomain', 'github.com');
+});
+
+ipcMain.handle('set-github-domain', (_, domain: string) => {
+  const normalizedDomain = domain.trim() || 'github.com';
+  (store as any).set('githubDomain', normalizedDomain);
+  mainWindow.webContents.send('domain-updated');
   return true;
 });
 

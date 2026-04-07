@@ -42,7 +42,15 @@ class SettingsManager {
   private tokenLink!: HTMLElement;
   private closeBtn!: HTMLButtonElement;
   private closeSettingsBtn!: HTMLButtonElement;
-  
+
+  // Domain elements
+  private domainInput!: HTMLInputElement;
+  private saveDomainBtn!: HTMLButtonElement;
+  private advancedToggle!: HTMLButtonElement;
+  private advancedSection!: HTMLElement;
+  private domainStatus!: HTMLElement;
+  private domainMessage!: HTMLElement;
+
   // Theme elements
   private bgPrimaryPicker!: HTMLInputElement;
   private bgSecondaryPicker!: HTMLInputElement;
@@ -63,7 +71,15 @@ class SettingsManager {
       this.tokenLink = document.getElementById('tokenLink') as HTMLElement;
       this.closeBtn = document.getElementById('closeBtn') as HTMLButtonElement;
       this.closeSettingsBtn = document.getElementById('closeSettingsBtn') as HTMLButtonElement;
-      
+
+      // Domain elements
+      this.domainInput = document.getElementById('githubDomain') as HTMLInputElement;
+      this.saveDomainBtn = document.getElementById('saveDomainBtn') as HTMLButtonElement;
+      this.advancedToggle = document.getElementById('advancedToggle') as HTMLButtonElement;
+      this.advancedSection = document.getElementById('advancedSection') as HTMLElement;
+      this.domainStatus = document.getElementById('domainStatus') as HTMLElement;
+      this.domainMessage = document.getElementById('domainMessage') as HTMLElement;
+
       // Theme elements
       this.bgPrimaryPicker = document.getElementById('bgPrimary') as HTMLInputElement;
       this.bgSecondaryPicker = document.getElementById('bgSecondary') as HTMLInputElement;
@@ -88,14 +104,23 @@ class SettingsManager {
     // Load existing token
     const existingToken = await settingsIpc.invoke('get-github-token');
     this.updateTokenStatus(existingToken);
-    
+
+    // Load existing domain
+    const existingDomain = await settingsIpc.invoke('get-github-domain');
+    this.domainInput.value = existingDomain === 'github.com' ? '' : existingDomain;
+    this.updateDomainStatus(existingDomain);
+
     // Load existing theme
     await this.loadTheme();
-    
+
     // Set up event listeners
     this.tokenForm.addEventListener('submit', (e) => this.handleSubmit(e));
     this.tokenLink.addEventListener('click', (e) => this.handleTokenLinkClick(e));
     this.tokenInput.addEventListener('input', () => this.clearMessages());
+
+    // Domain event listeners
+    this.advancedToggle.addEventListener('click', () => this.toggleAdvanced());
+    this.saveDomainBtn.addEventListener('click', () => this.handleDomainSave());
     
     // Close button event listeners
     this.closeBtn.addEventListener('click', () => this.handleClose());
@@ -140,17 +165,18 @@ class SettingsManager {
       return;
     }
 
-    if (!this.validateToken(token)) {
-      this.showError('Invalid token format. GitHub tokens start with "ghp_"');
-      return;
-    }
-
     this.saveBtn.disabled = true;
     this.saveBtn.textContent = 'Saving...';
 
     try {
+      // Get configured domain
+      const domain = this.domainInput.value.trim() || 'github.com';
+      const apiUrl = domain === 'github.com'
+        ? 'https://api.github.com/user'
+        : `https://${domain}/api/v3/user`;
+
       // Test the token by making a simple API call
-      const response = await fetch('https://api.github.com/user', {
+      const response = await fetch(apiUrl, {
         headers: {
           'Authorization': `token ${token}`,
           'Accept': 'application/vnd.github.v3+json',
@@ -188,7 +214,9 @@ class SettingsManager {
 
   private handleTokenLinkClick(e: Event): void {
     e.preventDefault();
-    settingsIpc.invoke('open-external', 'https://github.com/settings/tokens');
+    const domain = this.domainInput.value.trim() || 'github.com';
+    const tokenUrl = `https://${domain}/settings/tokens`;
+    settingsIpc.invoke('open-external', tokenUrl);
   }
 
   private showError(message: string): void {
@@ -313,11 +341,84 @@ class SettingsManager {
 
       await settingsIpc.invoke('set-theme', theme);
       this.showSuccess('Theme applied successfully!');
-      
+
     } catch (error) {
       this.showError('Failed to apply theme');
       console.error('Error applying theme:', error);
     }
+  }
+
+  // Domain management methods
+  private toggleAdvanced(): void {
+    this.advancedSection.classList.toggle('collapsed');
+    const icon = this.advancedToggle.querySelector('.toggle-icon') as HTMLElement;
+    if (this.advancedSection.classList.contains('collapsed')) {
+      icon.textContent = '▼';
+    } else {
+      icon.textContent = '▲';
+    }
+  }
+
+  private validateDomainFormat(domain: string): { valid: boolean; error?: string } {
+    // Empty means default (valid)
+    if (!domain || domain === 'github.com') {
+      return { valid: true };
+    }
+
+    // Check for protocol prefix (not allowed)
+    if (domain.startsWith('http://') || domain.startsWith('https://')) {
+      return { valid: false, error: 'Do not include http:// or https://' };
+    }
+
+    // Check for path (not allowed)
+    if (domain.includes('/')) {
+      return { valid: false, error: 'Enter domain only, no path' };
+    }
+
+    // Basic domain validation
+    const domainRegex = /^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+    if (!domainRegex.test(domain)) {
+      return { valid: false, error: 'Invalid domain format' };
+    }
+
+    return { valid: true };
+  }
+
+  private async handleDomainSave(): Promise<void> {
+    const domain = this.domainInput.value.trim() || 'github.com';
+
+    const validation = this.validateDomainFormat(domain);
+    if (!validation.valid) {
+      this.showDomainMessage(validation.error!, 'error');
+      return;
+    }
+
+    try {
+      await settingsIpc.invoke('set-github-domain', domain);
+      this.updateDomainStatus(domain);
+      this.showDomainMessage('Domain saved successfully!', 'success');
+    } catch (error) {
+      this.showDomainMessage('Failed to save domain', 'error');
+    }
+  }
+
+  private updateDomainStatus(domain: string): void {
+    const isEnterprise = domain !== 'github.com';
+    this.domainStatus.textContent = isEnterprise
+      ? `GitHub Enterprise: ${domain}`
+      : 'Public GitHub (github.com)';
+    this.domainStatus.className = isEnterprise
+      ? 'domain-status enterprise'
+      : 'domain-status public';
+  }
+
+  private showDomainMessage(text: string, type: 'success' | 'error'): void {
+    this.domainMessage.textContent = text;
+    this.domainMessage.className = `message ${type}`;
+
+    setTimeout(() => {
+      this.domainMessage.classList.add('hidden');
+    }, 3000);
   }
 
 }
