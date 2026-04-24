@@ -13,6 +13,7 @@ const createWindow = (): void => {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
+      webSecurity: false,
     },
     alwaysOnTop: true,
     resizable: true,
@@ -176,6 +177,25 @@ ipcMain.handle('set-github-domain', (_, domain: string) => {
   (store as any).set('githubDomain', normalizedDomain);
   mainWindow.webContents.send('domain-updated');
   return true;
+});
+
+ipcMain.handle('fetch-avatar', async (_, url: string, token: string) => {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `token ${token}`,
+        'User-Agent': 'GitHub-PR-Widget'
+      }
+    });
+    if (!response.ok) return null;
+    const contentType = response.headers.get('content-type') || '';
+    // Reject non-image responses (e.g. GHE SAML login page redirects)
+    if (!contentType.startsWith('image/')) return null;
+    const buffer = await response.arrayBuffer();
+    return `data:${contentType};base64,${Buffer.from(buffer).toString('base64')}`;
+  } catch {
+    return null;
+  }
 });
 
 ipcMain.handle('open-external', (_, url: string) => {

@@ -79,7 +79,7 @@ class PRRenderer {
       <div class="flex items-center gap-2 transition-all duration-500 ease-out ${isMinimized ? 'py-1' : 'mb-2'}">
         <!-- Avatar - slides in from left -->
         <div class="transition-all duration-400 ease-out overflow-hidden ${isMinimized ? 'w-0 opacity-0 -translate-x-2' : 'w-6 opacity-100 translate-x-0'}">
-          <img class="w-6 h-6 rounded-full border-2 border-white/10 bg-[var(--bg-secondary)] flex-shrink-0 shadow-[0_1px_0_rgba(255,255,255,0.1)_inset,0_2px_8px_rgba(0,0,0,0.3)]" src="${pr.user.avatar_url}" alt="${pr.user.login}" onerror="this.style.display='none'">
+          <img class="w-6 h-6 rounded-full border-2 border-white/10 bg-[var(--bg-secondary)] flex-shrink-0 shadow-[0_1px_0_rgba(255,255,255,0.1)_inset,0_2px_8px_rgba(0,0,0,0.3)]" data-avatar-url="${pr.user.avatar_url}" alt="${pr.user.login}">
         </div>
         
         <!-- Title - always visible -->
